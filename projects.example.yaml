@@ -1,0 +1,16 @@
+# Voz project configuration
+# Copy this file to projects.yaml and edit with your projects:
+#   cp projects.example.yaml projects.yaml
+#
+# Or just talk to Voz — say "add project my-app at ~/code/my-app"
+# and it will configure everything for you.
+#
+# Paths should use WSL format: /mnt/c/code/... (not C:\code\...)
+
+projects:
+  - name: my-project
+    path: /mnt/c/code/my-project
+    description: "Description of your project"
+  - name: another-project
+    path: /mnt/c/code/another-project
+    description: "Description of another project"

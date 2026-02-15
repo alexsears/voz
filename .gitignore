@@ -1,0 +1,8 @@
+# User-specific config
+projects.yaml
+MEMORY.md
+
+# Runtime
+app/dashboard.log
+app/.dashboard.pid
+node_modules/

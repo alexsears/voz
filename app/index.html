@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voz</title>
+  <style>
+:root {
+  --bg: #0b1020;
+  --panel: #0f1730;
+  --panel-2: #0c1328;
+  --text: #e8ecff;
+  --muted: rgba(232, 236, 255, 0.65);
+  --accent: #7c5cff;
+  --accent-2: #2fe6c5;
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 12px 40px rgba(0,0,0,0.35);
+  --radius: 14px;
+  --transition: 220ms cubic-bezier(.2,.8,.2,1);
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --terminal-bg: #060d1a;
+  --terminal-font: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: radial-gradient(ellipse 900px 500px at 20% 0%, rgba(124,92,255,0.15), transparent 60%),
+              radial-gradient(ellipse 900px 500px at 80% 100%, rgba(47,230,197,0.08), transparent 60%),
+              var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow-x: hidden;
+}
+
+/* --- Header --- */
+.header {
+  padding: 20px 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header__logo {
+  width: 44px; height: 44px; min-width: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #071022;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 18px;
+}
+.header__text h1 { font-size: 20px; font-weight: 700; }
+.header__text p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.header__spacer { flex: 1; }
+.header__status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted);
+}
+.status-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+.status-dot.on { background: var(--green); color: var(--green); }
+.status-dot.off { background: var(--red); color: var(--red); }
+.status-dot.loading { background: var(--yellow); color: var(--yellow); animation: pulse 1s infinite; }
+
+/* --- Controls bar --- */
+.controls {
+  padding: 16px 24px;
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.btn {
+  appearance: none; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04); color: var(--text);
+  padding: 8px 16px; border-radius: 10px; cursor: pointer;
+  font-size: 13px; font-family: var(--font);
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: all var(--transition);
+}
+.btn:hover { background: rgba(124,92,255,0.15); border-color: rgba(124,92,255,0.4); }
+.btn:active { transform: scale(0.96); }
+.btn.primary { background: rgba(124,92,255,0.25); border-color: rgba(124,92,255,0.5); }
+.btn.danger { border-color: rgba(248,113,113,0.3); }
+.btn.danger:hover { background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.5); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.controls__spacer { flex: 1; }
+.controls__auto label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* --- Grid --- */
+.grid {
+  padding: 0 24px 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .grid { grid-template-columns: 1fr; padding: 0 12px 12px; }
+  .header { padding: 16px 12px 0; }
+  .controls { padding: 12px; }
+}
+
+/* --- Project Card --- */
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent 40%), var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+.card:hover { border-color: rgba(124,92,255,0.25); }
+.card.is-focused { border-color: rgba(124,92,255,0.5); }
+
+.card__header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.card__dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.card__dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.card__dot.inactive { background: rgba(255,255,255,0.15); }
+.card__name { font-weight: 650; font-size: 14px; }
+.card__desc { font-size: 12px; color: var(--muted); margin-left: auto; }
+.card__actions { display: flex; gap: 4px; margin-left: 8px; }
+.card__btn {
+  appearance: none; border: 1px solid transparent;
+  background: transparent; color: var(--muted);
+  width: 30px; height: 30px; border-radius: 8px;
+  cursor: pointer; font-size: 14px;
+  display: grid; place-items: center;
+  transition: all var(--transition);
+}
+.card__btn:hover { background: rgba(255,255,255,0.08); color: var(--text); border-color: var(--border); }
+.card__btn.stop:hover { background: rgba(248,113,113,0.15); color: var(--red); border-color: rgba(248,113,113,0.3); }
+
+/* --- Terminal --- */
+.terminal {
+  background: var(--terminal-bg);
+  font-family: var(--terminal-font);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #a0aec0;
+  padding: 12px 14px;
+  height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.terminal::-webkit-scrollbar { width: 5px; }
+.terminal::-webkit-scrollbar-track { background: transparent; }
+.terminal::-webkit-scrollbar-thumb { background: rgba(124,92,255,0.25); border-radius: 3px; }
+.terminal .line-prompt { color: var(--accent-2); }
+.terminal .line-error { color: var(--red); }
+.terminal .line-info { color: var(--accent); }
+.terminal__empty { color: rgba(255,255,255,0.2); font-style: italic; }
+
+/* --- Command Input --- */
+.card__input {
+  display: flex; gap: 0;
+  border-top: 1px solid var(--border);
+}
+.card__input input {
+  flex: 1;
+  background: rgba(0,0,0,0.2);
+  border: none; outline: none;
+  color: var(--text);
+  font-family: var(--terminal-font);
+  font-size: 13px;
+  padding: 10px 14px;
+}
+.card__input input::placeholder { color: rgba(255,255,255,0.2); }
+.card__input button {
+  appearance: none; border: none;
+  background: rgba(124,92,255,0.2);
+  color: var(--accent);
+  padding: 10px 16px;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px; font-weight: 600;
+  transition: all var(--transition);
+}
+.card__input button:hover { background: rgba(124,92,255,0.35); }
+
+/* --- Toast --- */
+.toast-container {
+  position: fixed; bottom: 20px; right: 20px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 100;
+}
+.toast {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  animation: slideIn 300ms ease-out;
+  max-width: 360px;
+}
+.toast.success { border-color: rgba(52,211,153,0.4); }
+.toast.error { border-color: rgba(248,113,113,0.4); }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header__logo">&#9654;</div>
+  <div class="header__text">
+    <h1>Voz</h1>
+    <p>Voice-controlled Claude Code sessions</p>
+  </div>
+  <div class="header__spacer"></div>
+  <div class="header__status">
+    <span class="status-dot off" id="sessionDot"></span>
+    <span id="sessionText">Checking...</span>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn primary" id="startBtn" onclick="startSession()">&#9654; Start All</button>
+  <button class="btn danger" id="stopBtn" onclick="stopSession()">&#9632; Stop All</button>
+  <button class="btn" onclick="refreshAll()">&#8635; Refresh</button>
+  <div class="controls__spacer"></div>
+  <div class="controls__auto">
+    <label><input type="checkbox" id="autoRefresh" checked /> Auto-refresh (5s)</label>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = window.location.origin + "/api";
+let projects = [];
+let autoTimer = null;
+
+// --- API calls ---
+async function api(path, opts = {}) {
+  try {
+    const res = await fetch(API + path, {
+      headers: { "Content-Type": "application/json" },
+      ...opts,
+    });
+    return await res.json();
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// --- Toast notifications ---
+function toast(msg, type = "info") {
+  const container = document.getElementById("toasts");
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// --- Render project cards ---
+function renderGrid(projectsData) {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  // Filter out placeholder projects
+  const real = projectsData.filter(p => p.name !== "my-project" && p.name !== "another-project");
+
+  if (real.length === 0) {
+    grid.innerHTML = `
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__dot inactive"></span>
+          <span class="card__name">Welcome to Voz</span>
+        </div>
+        <div class="terminal" style="height: auto; padding: 24px; line-height: 1.8;">
+          <span class="line-info">No projects configured yet.</span>
+
+Talk to Voz to get started. Just say:
+
+  <span class="line-prompt">"Add project my-api at ~/code/my-api — it's a REST backend"</span>
+  <span class="line-prompt">"I have a project called my-app at ~/code/my-app"</span>
+  <span class="line-prompt">"Set up my projects"</span>
+
+Or edit <span class="line-info">projects.yaml</span> directly.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  for (const p of real) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.id = "card-" + p.name;
+    card.innerHTML = `
+      <div class="card__header">
+        <span class="card__dot ${p.active || p.windowActive ? "active" : "inactive"}"></span>
+        <span class="card__name">${esc(p.name)}</span>
+        <span class="card__desc">${esc(p.description || "")}</span>
+        <div class="card__actions">
+          <button class="card__btn" onclick="refreshProject('${p.name}')" title="Refresh output">&#8635;</button>
+          <button class="card__btn stop" onclick="stopProject('${p.name}')" title="Send Ctrl-C">&#9632;</button>
+          <button class="card__btn stop" onclick="exitProject('${p.name}')" title="Send /exit">&#10005;</button>
+        </div>
+      </div>
+      <div class="terminal" id="term-${p.name}">
+        ${p.output ? colorize(p.output) : '<span class="terminal__empty">No output yet</span>'}
+      </div>
+      <div class="card__input">
+        <input type="text" id="input-${p.name}" placeholder="Send a command to ${p.name}..." onkeydown="if(event.key==='Enter')dispatch('${p.name}')" />
+        <button onclick="dispatch('${p.name}')">Send</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function colorize(text) {
+  return text.split("\n").map(line => {
+    if (/error|Error|ERROR|fail|FAIL/i.test(line)) return `<span class="line-error">${esc(line)}</span>`;
+    if (/^(>>|\$|❯)/.test(line.trim())) return `<span class="line-prompt">${esc(line)}</span>`;
+    if (/info|complete|success|done/i.test(line)) return `<span class="line-info">${esc(line)}</span>`;
+    return esc(line);
+  }).join("\n");
+}
+
+// --- Actions ---
+async function refreshAll() {
+  const data = await api("/status");
+  const dot = document.getElementById("sessionDot");
+  const text = document.getElementById("sessionText");
+
+  if (data.session) {
+    dot.className = "status-dot on";
+    text.textContent = "Session active";
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("stopBtn").disabled = false;
+  } else {
+    dot.className = "status-dot off";
+    text.textContent = "Session stopped";
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = true;
+  }
+
+  if (data.projects && data.projects.length > 0) {
+    projects = data.projects;
+    renderGrid(projects);
+    // Auto-scroll terminals to bottom
+    for (const p of projects) {
+      const term = document.getElementById("term-" + p.name);
+      if (term) term.scrollTop = term.scrollHeight;
+    }
+  } else if (!data.session) {
+    // Show project list without output
+    const listData = await api("/projects");
+    if (listData.projects) {
+      projects = listData.projects;
+      renderGrid(projects);
+    }
+  }
+}
+
+async function refreshProject(name) {
+  const data = await api(`/project/${name}/output?lines=50`);
+  const term = document.getElementById("term-" + name);
+  if (term && data.output) {
+    term.innerHTML = colorize(data.output);
+    term.scrollTop = term.scrollHeight;
+  }
+}
+
+async function dispatch(name) {
+  const input = document.getElementById("input-" + name);
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = "";
+
+  const res = await api(`/project/${name}/dispatch`, {
+    method: "POST",
+    body: JSON.stringify({ message: msg }),
+  });
+
+  if (res.ok) {
+    toast(`Sent to ${name}`, "success");
+    setTimeout(() => refreshProject(name), 2500);
+  } else {
+    toast(`Failed: ${res.error}`, "error");
+  }
+}
+
+async function stopProject(name) {
+  await api(`/project/${name}/stop`, { method: "POST" });
+  toast(`Ctrl-C sent to ${name}`, "success");
+  setTimeout(() => refreshProject(name), 1000);
+}
+
+async function exitProject(name) {
+  await api(`/project/${name}/exit`, { method: "POST" });
+  toast(`/exit sent to ${name}`, "success");
+  setTimeout(() => refreshProject(name), 2000);
+}
+
+async function startSession() {
+  const dot = document.getElementById("sessionDot");
+  const text = document.getElementById("sessionText");
+  dot.className = "status-dot loading";
+  text.textContent = "Starting...";
+  toast("Starting Voz...", "info");
+
+  const res = await api("/start", { method: "POST" });
+  if (res.ok) {
+    toast("Voz started", "success");
+    setTimeout(refreshAll, 3000);
+  } else {
+    toast(`Start failed: ${res.error}`, "error");
+    refreshAll();
+  }
+}
+
+async function stopSession() {
+  const dot = document.getElementById("sessionDot");
+  const text = document.getElementById("sessionText");
+  dot.className = "status-dot loading";
+  text.textContent = "Stopping...";
+  toast("Stopping Voz...", "info");
+
+  await api("/stop", { method: "POST" });
+  setTimeout(refreshAll, 3000);
+}
+
+// --- Memory ---
+async function syncMemory() {
+  toast("Syncing memory...", "info");
+  const res = await api("/memory/sync", { method: "POST" });
+  if (res.ok) {
+    toast("Memory synced to git", "success");
+  } else {
+    toast(`Sync failed: ${res.error}`, "error");
+  }
+}
+
+async function pushMemory() {
+  toast("Pushing to remotes...", "info");
+  const res = await api("/memory/push", { method: "POST" });
+  if (res.ok) {
+    toast("Pushed to remotes", "success");
+  } else {
+    toast(`Push failed: ${res.error}`, "error");
+  }
+}
+
+// --- Auto-refresh ---
+function setupAutoRefresh() {
+  const cb = document.getElementById("autoRefresh");
+  function toggle() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    if (cb.checked) { autoTimer = setInterval(refreshAll, 5000); }
+  }
+  cb.addEventListener("change", toggle);
+  toggle();
+}
+
+// --- Init ---
+refreshAll();
+setupAutoRefresh();
+</script>
+</body>
+</html>
