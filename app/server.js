@@ -24,6 +24,15 @@ const WSL_ORCH_DIR = toWslPath(ORCH_DIR);
 const app = express();
 app.use(express.json());
 
+// CORS — allow the Vercel-hosted frontend to reach local API
+app.use((_req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (_req.method === "OPTIONS") return res.status(200).end();
+  next();
+});
+
 // --- YAML parser (mirrors the bash scripts) ---
 function parseProjects() {
   let lines;
@@ -233,9 +242,10 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, session: sessionExists() });
 });
 
-// Serve static frontend
+// Serve static frontend from public/
+app.use(express.static(join(ORCH_DIR, "public")));
 app.get("/", (_req, res) => {
-  res.sendFile(join(__dirname, "index.html"));
+  res.sendFile(join(ORCH_DIR, "public", "index.html"));
 });
 
 // Auto-sync memory every 5 minutes

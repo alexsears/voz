@@ -38,7 +38,7 @@ body {
   flex-direction: column;
 }
 
-/* ── Onboarding overlay ── */
+/* ── Onboarding overlay (cloud mode only) ── */
 .onboarding {
   position: fixed; inset: 0; z-index: 100;
   background: var(--bg);
@@ -67,15 +67,12 @@ body {
   background-clip: text;
 }
 .onboarding p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
-.onboarding__input {
-  display: flex; gap: 8px;
-}
+.onboarding__input { display: flex; gap: 8px; }
 .onboarding__input input {
   flex: 1; padding: 12px 16px;
   background: var(--terminal-bg); border: 1px solid var(--border);
   border-radius: 10px; color: var(--text);
-  font-family: var(--terminal-font); font-size: 13px;
-  outline: none;
+  font-family: var(--terminal-font); font-size: 13px; outline: none;
 }
 .onboarding__input input:focus { border-color: var(--accent); }
 .onboarding__input input::placeholder { color: var(--muted); opacity: 0.5; }
@@ -87,10 +84,7 @@ body {
 }
 .onboarding__input button:hover { box-shadow: 0 4px 20px rgba(124,92,255,0.4); }
 .onboarding__err { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
-.onboarding__hint {
-  margin-top: 20px; font-size: 11px; color: var(--muted); opacity: 0.6;
-  line-height: 1.5;
-}
+.onboarding__hint { margin-top: 20px; font-size: 11px; color: var(--muted); opacity: 0.6; line-height: 1.5; }
 
 /* ── App shell ── */
 .app { display: flex; height: 100%; }
@@ -101,8 +95,7 @@ body {
   width: var(--sidebar-w); min-width: var(--sidebar-w);
   background: var(--panel);
   border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
+  display: flex; flex-direction: column; overflow: hidden;
 }
 .sidebar__header {
   padding: 16px 18px;
@@ -116,9 +109,14 @@ body {
   font-weight: 800; font-size: 13px; flex-shrink: 0;
 }
 .sidebar__title { font-weight: 700; font-size: 15px; }
-.sidebar__actions {
-  margin-left: auto; display: flex; gap: 4px;
+.sidebar__mode {
+  margin-left: auto; font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: 6px;
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
+.sidebar__mode.local { background: rgba(52,211,153,0.15); color: var(--green); }
+.sidebar__mode.cloud { background: rgba(124,92,255,0.15); color: var(--accent); }
+.sidebar__actions { display: flex; gap: 4px; }
 .sidebar__actions button {
   width: 28px; height: 28px; border: none; border-radius: 6px;
   background: transparent; color: var(--muted); cursor: pointer;
@@ -127,9 +125,30 @@ body {
 }
 .sidebar__actions button:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 
-.sidebar__sessions {
-  flex: 1; overflow-y: auto; padding: 8px;
+/* ── Session status bar (local mode) ── */
+.sidebar__status {
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--muted);
 }
+.sidebar__status.hidden { display: none; }
+.sidebar__status .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.sidebar__status .dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sidebar__status .dot.off { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.sidebar__status .dot.loading { background: var(--yellow); animation: pulse-dot 1s infinite; }
+.sidebar__status-btns { margin-left: auto; display: flex; gap: 4px; }
+.sidebar__status-btns button {
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 11px; font-family: var(--font); transition: all var(--transition);
+}
+.sidebar__status-btns button:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.sidebar__sessions { flex: 1; overflow-y: auto; padding: 8px; }
 .sidebar__sessions::-webkit-scrollbar { width: 4px; }
 .sidebar__sessions::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
@@ -159,8 +178,7 @@ body {
 .session-item__close:hover { background: rgba(248,113,113,0.2); color: var(--red); }
 .session-item__desc {
   font-size: 11px; color: var(--muted); margin-top: 4px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding-left: 16px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 16px;
 }
 .session-item__preview {
   font-size: 11px; color: rgba(232,236,255,0.4); margin-top: 2px;
@@ -169,19 +187,16 @@ body {
 }
 
 .sidebar__add {
-  padding: 10px 12px; margin: 4px 0;
-  border-radius: 10px; cursor: pointer;
+  padding: 10px 12px; margin: 4px 0; border-radius: 10px; cursor: pointer;
   display: flex; align-items: center; gap: 8px;
-  color: var(--muted); font-size: 13px;
-  transition: all var(--transition);
+  color: var(--muted); font-size: 13px; transition: all var(--transition);
   border: 1px dashed rgba(255,255,255,0.1);
 }
 .sidebar__add:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: rgba(255,255,255,0.2); }
-.sidebar__add span { font-size: 16px; }
+.sidebar__add.hidden { display: none; }
 
 .sidebar__footer {
-  padding: 12px 18px;
-  border-top: 1px solid var(--border);
+  padding: 12px 18px; border-top: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
 }
 .sidebar__footer button {
@@ -193,12 +208,8 @@ body {
 .sidebar__footer button:hover { background: rgba(255,255,255,0.04); color: var(--text); }
 
 /* ── Main area ── */
-.main {
-  flex: 1; display: flex; flex-direction: column;
-  overflow: hidden; position: relative;
-}
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-/* ── Empty state ── */
 .main__empty {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -208,26 +219,20 @@ body {
 .main__empty h2 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
 .main__empty p { font-size: 14px; max-width: 400px; line-height: 1.6; }
 
-/* ── Session panels container ── */
-.panels {
-  flex: 1; display: flex; overflow: hidden;
-}
+.panels { flex: 1; display: flex; overflow: hidden; }
 .panels.hidden { display: none; }
 
-/* ── Single session panel ── */
+/* ── Session panel ── */
 .panel {
   flex: 1; display: flex; flex-direction: column;
-  border-right: 1px solid var(--border);
-  min-width: 0;
+  border-right: 1px solid var(--border); min-width: 0;
 }
 .panel:last-child { border-right: none; }
 
 .panel__header {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(0,0,0,0.15);
-  flex-shrink: 0;
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.15); flex-shrink: 0;
 }
 .panel__dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -244,7 +249,23 @@ body {
   transition: all var(--transition);
 }
 .panel__btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.panel__btn.stop:hover { background: rgba(248,113,113,0.15); color: var(--red); }
 
+/* ── Terminal output (local mode) ── */
+.panel__terminal {
+  flex: 1; overflow-y: auto; padding: 12px 14px;
+  background: var(--terminal-bg);
+  font-family: var(--terminal-font); font-size: 12px;
+  line-height: 1.5; color: #a0aec0;
+  white-space: pre-wrap; word-break: break-all;
+}
+.panel__terminal::-webkit-scrollbar { width: 5px; }
+.panel__terminal::-webkit-scrollbar-thumb { background: rgba(124,92,255,0.25); border-radius: 3px; }
+.panel__terminal .line-prompt { color: var(--accent-2); }
+.panel__terminal .line-error { color: var(--red); }
+.panel__terminal .line-info { color: var(--accent); }
+
+/* ── Chat messages (cloud mode) ── */
 .panel__messages {
   flex: 1; overflow-y: auto; padding: 16px 20px;
   display: flex; flex-direction: column; gap: 12px;
@@ -259,30 +280,22 @@ body {
 }
 .msg.user {
   align-self: flex-end;
-  background: rgba(124,92,255,0.2);
-  border: 1px solid rgba(124,92,255,0.3);
+  background: rgba(124,92,255,0.2); border: 1px solid rgba(124,92,255,0.3);
 }
 .msg.assistant {
   align-self: flex-start;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  font-family: var(--terminal-font);
-  font-size: 12px;
+  background: var(--panel-2); border: 1px solid var(--border);
+  font-family: var(--terminal-font); font-size: 12px;
 }
 .msg.system {
-  align-self: center;
-  background: transparent;
-  color: var(--muted); font-size: 11px;
-  font-style: italic;
+  align-self: center; background: transparent;
+  color: var(--muted); font-size: 11px; font-style: italic;
 }
 .msg.thinking {
-  align-self: flex-start;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--muted); font-size: 12px;
+  align-self: flex-start; background: var(--panel-2);
+  border: 1px solid var(--border); color: var(--muted); font-size: 12px;
 }
 
-/* Typing indicator */
 .typing { display: flex; gap: 4px; padding: 8px 0; }
 .typing span {
   width: 6px; height: 6px; border-radius: 50%;
@@ -298,22 +311,19 @@ body {
 
 /* ── Input bar ── */
 .panel__input {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
+  padding: 12px 16px; border-top: 1px solid var(--border);
   background: rgba(0,0,0,0.1);
-  display: flex; gap: 8px; align-items: flex-end;
-  flex-shrink: 0;
+  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
 }
-.panel__input textarea {
+.panel__input textarea, .panel__input input[type="text"] {
   flex: 1; resize: none; padding: 10px 14px;
   background: var(--terminal-bg); border: 1px solid var(--border);
   border-radius: 10px; color: var(--text);
-  font-family: var(--font); font-size: 13px;
-  outline: none; min-height: 42px; max-height: 120px;
-  line-height: 1.5;
+  font-family: var(--terminal-font); font-size: 13px;
+  outline: none; min-height: 42px; max-height: 120px; line-height: 1.5;
 }
-.panel__input textarea:focus { border-color: var(--accent); }
-.panel__input textarea::placeholder { color: var(--muted); opacity: 0.5; }
+.panel__input textarea:focus, .panel__input input:focus { border-color: var(--accent); }
+.panel__input textarea::placeholder, .panel__input input::placeholder { color: var(--muted); opacity: 0.5; }
 .panel__input button {
   width: 42px; height: 42px; border: none; border-radius: 10px;
   cursor: pointer; display: grid; place-items: center;
@@ -330,13 +340,16 @@ body {
   border: 1px solid var(--border); font-size: 18px;
 }
 .panel__input .mic-btn:hover { color: var(--text); background: rgba(255,255,255,0.08); }
-.panel__input .mic-btn.recording { color: var(--red); background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.3); animation: pulse 1.5s infinite; }
+.panel__input .mic-btn.recording {
+  color: var(--red); background: rgba(248,113,113,0.15);
+  border-color: rgba(248,113,113,0.3); animation: pulse 1.5s infinite;
+}
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.3); }
   50% { box-shadow: 0 0 0 6px rgba(248,113,113,0); }
 }
 
-/* ── Add session modal ── */
+/* ── Modals ── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -359,19 +372,16 @@ body {
 }
 .modal input:focus, .modal textarea:focus { border-color: var(--accent); }
 .modal textarea { resize: vertical; min-height: 60px; }
+.modal textarea.sysprompt { min-height: 120px; font-family: var(--terminal-font); font-size: 12px; }
 .modal__btns { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
 .modal__btns button {
   padding: 10px 20px; border-radius: 8px; font-size: 13px;
-  font-weight: 600; cursor: pointer; transition: all var(--transition);
-  font-family: var(--font);
+  font-weight: 600; cursor: pointer; transition: all var(--transition); font-family: var(--font);
 }
 .modal__btns .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); }
 .modal__btns .cancel-btn:hover { background: rgba(255,255,255,0.04); }
 .modal__btns .create-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); border: none; color: white; }
 .modal__btns .create-btn:hover { box-shadow: 0 4px 20px rgba(124,92,255,0.4); }
-
-/* ── System prompt modal ── */
-.modal textarea.sysprompt { min-height: 120px; font-family: var(--terminal-font); font-size: 12px; }
 
 /* ── Toast ── */
 .toast {
@@ -379,8 +389,7 @@ body {
   padding: 12px 20px; border-radius: 10px;
   background: var(--panel); border: 1px solid var(--border);
   font-size: 13px; box-shadow: var(--shadow);
-  transform: translateY(80px); opacity: 0;
-  transition: all 300ms ease;
+  transform: translateY(80px); opacity: 0; transition: all 300ms ease;
 }
 .toast.show { transform: translateY(0); opacity: 1; }
 
@@ -389,43 +398,49 @@ body {
   :root { --sidebar-w: 60px; }
   .sidebar__title, .sidebar__footer button span,
   .session-item__desc, .session-item__preview,
-  .session-item__name { display: none; }
+  .session-item__name, .sidebar__mode, .sidebar__status span:not(.dot) { display: none; }
   .sidebar__actions { display: none; }
   .session-item { padding: 8px; display: flex; align-items: center; justify-content: center; }
   .session-item__top { justify-content: center; }
   .sidebar__add { justify-content: center; }
-  .sidebar__add span { margin: 0; }
 }
   </style>
 </head>
 <body>
 
-<!-- ── Onboarding ── -->
-<div class="onboarding" id="onboarding">
+<!-- Onboarding (cloud mode) -->
+<div class="onboarding hidden" id="onboarding">
   <div class="onboarding__card">
     <div class="onboarding__logo">V</div>
     <h1>Voz</h1>
     <p>Multi-session AI orchestrator. Talk to many Claude instances at once, each focused on a different project.</p>
-    <p style="font-size:13px; margin-bottom:16px;">Enter your Anthropic API key to get started. It stays on your device — never sent to our servers.</p>
+    <p style="font-size:13px; margin-bottom:16px;">Enter your Anthropic API key to get started. It stays on your device.</p>
     <div class="onboarding__input">
       <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" />
       <button id="apiKeySave">Start</button>
     </div>
     <div class="onboarding__err" id="apiKeyErr"></div>
-    <div class="onboarding__hint">Your key is stored in your browser's localStorage. <br>Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">console.anthropic.com</a></div>
+    <div class="onboarding__hint">Your key is stored in localStorage. <br>Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">console.anthropic.com</a></div>
   </div>
 </div>
 
-<!-- ── App ── -->
+<!-- App -->
 <div class="app hidden" id="app">
-
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar__header">
       <div class="sidebar__logo">V</div>
       <div class="sidebar__title">Voz</div>
+      <div class="sidebar__mode" id="modeLabel"></div>
       <div class="sidebar__actions">
         <button id="settingsBtn" title="Settings">&#9881;</button>
+      </div>
+    </div>
+    <div class="sidebar__status hidden" id="localStatus">
+      <span class="dot off" id="tmuxDot"></span>
+      <span id="tmuxText">Checking...</span>
+      <div class="sidebar__status-btns">
+        <button id="tmuxStartBtn" onclick="localStart()">Start</button>
+        <button id="tmuxStopBtn" onclick="localStop()">Stop</button>
       </div>
     </div>
     <div class="sidebar__sessions" id="sessionList"></div>
@@ -433,22 +448,20 @@ body {
       <span>+</span> New session
     </div>
     <div class="sidebar__footer">
-      <button id="voiceToggle" title="Toggle voice mode"><span>&#127908;</span> Voice</button>
-      <button id="changeKeyBtn"><span>&#128273;</span> API Key</button>
+      <button id="voiceToggle"><span>&#127908;</span> Voice</button>
+      <button id="changeKeyBtn"><span>&#128273;</span> Settings</button>
     </div>
   </aside>
-
-  <!-- Main content -->
   <div class="main">
     <div class="main__empty" id="emptyState">
       <h2>No sessions open</h2>
-      <p>Click a session in the sidebar or create a new one to start talking to Claude.</p>
+      <p>Click a session in the sidebar to open it.</p>
     </div>
     <div class="panels hidden" id="panels"></div>
   </div>
 </div>
 
-<!-- ── Add session modal ── -->
+<!-- Add session modal (cloud mode) -->
 <div class="modal-overlay hidden" id="addModal">
   <div class="modal">
     <h3>New Session</h3>
@@ -457,7 +470,7 @@ body {
     <label>Description</label>
     <input type="text" id="newDesc" placeholder="REST backend service" />
     <label>System prompt (optional)</label>
-    <textarea class="sysprompt" id="newSystem" placeholder="You are a senior backend engineer working on a Node.js REST API..."></textarea>
+    <textarea class="sysprompt" id="newSystem" placeholder="You are a senior backend engineer..."></textarea>
     <div class="modal__btns">
       <button class="cancel-btn" id="addCancel">Cancel</button>
       <button class="create-btn" id="addCreate">Create</button>
@@ -465,7 +478,7 @@ body {
   </div>
 </div>
 
-<!-- ── Settings modal ── -->
+<!-- Settings modal -->
 <div class="modal-overlay hidden" id="settingsModal">
   <div class="modal">
     <h3>Settings</h3>
@@ -483,54 +496,72 @@ body {
 <div class="toast" id="toast"></div>
 
 <script>
-// ── State ──
+// ═══════════════════════════════════════
+//  Voz — Unified UI (Local + Cloud)
+// ═══════════════════════════════════════
+
 const STATE_KEY = "voz_state";
 const API_KEY_KEY = "voz_api_key";
 const MODEL_KEY = "voz_model";
-
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 
+let MODE = "cloud";          // "local" or "cloud"
+let LOCAL_API = "";           // e.g. "http://localhost:4800"
 let state = loadState();
-let activePanels = []; // session IDs currently open as panels
+let activePanels = [];        // session IDs open as panels
+let localProjects = [];       // from local API /api/status
+let autoRefreshTimer = null;
 
+// ── Persistence ──
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STATE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
+  try { const r = localStorage.getItem(STATE_KEY); if (r) return JSON.parse(r); } catch {}
   return { sessions: [] };
 }
-
-function saveState() {
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
-}
-
+function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
 function getApiKey() { return localStorage.getItem(API_KEY_KEY) || ""; }
 function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
 function getModel() { return localStorage.getItem(MODEL_KEY) || DEFAULT_MODEL; }
 function setModel(m) { localStorage.setItem(MODEL_KEY, m || DEFAULT_MODEL); }
 
-// ── Session structure ──
-function createSession(name, desc, systemPrompt) {
-  return {
-    id: crypto.randomUUID(),
-    name: name || "untitled",
-    desc: desc || "",
-    systemPrompt: systemPrompt || "",
-    messages: [], // { role: "user"|"assistant", content: "" }
-    status: "idle", // idle | waiting | live
-    createdAt: Date.now(),
-    lastActiveAt: Date.now(),
-  };
+// ── Mode detection ──
+async function detectMode() {
+  // Try localhost:4800 (local Voz dashboard)
+  const ports = [4800];
+  for (const port of ports) {
+    try {
+      const r = await fetch(`http://localhost:${port}/api/health`, { signal: AbortSignal.timeout(1500) });
+      const d = await r.json();
+      if (d.ok) { LOCAL_API = `http://localhost:${port}`; return "local"; }
+    } catch {}
+  }
+  return "cloud";
 }
 
 // ── Init ──
-function init() {
-  if (getApiKey()) {
+async function init() {
+  MODE = await detectMode();
+  const label = document.getElementById("modeLabel");
+
+  if (MODE === "local") {
+    label.textContent = "Local";
+    label.className = "sidebar__mode local";
+    document.getElementById("localStatus").classList.remove("hidden");
+    document.getElementById("addSessionBtn").classList.add("hidden");
+    document.getElementById("changeKeyBtn").querySelector("span").nextSibling.textContent = " Refresh";
+    document.getElementById("changeKeyBtn").onclick = () => localRefresh();
     showApp();
+    localRefresh();
+    autoRefreshTimer = setInterval(localRefresh, 5000);
   } else {
-    document.getElementById("onboarding").classList.remove("hidden");
-    document.getElementById("app").classList.add("hidden");
+    label.textContent = "Cloud";
+    label.className = "sidebar__mode cloud";
+    document.getElementById("addSessionBtn").classList.remove("hidden");
+    document.getElementById("changeKeyBtn").onclick = () => document.getElementById("settingsBtn").click();
+    if (getApiKey()) {
+      showApp();
+    } else {
+      document.getElementById("onboarding").classList.remove("hidden");
+    }
   }
 }
 
@@ -541,75 +572,242 @@ function showApp() {
   renderPanels();
 }
 
-// ── Onboarding ──
-document.getElementById("apiKeySave").onclick = async () => {
-  const key = document.getElementById("apiKeyInput").value.trim();
-  const err = document.getElementById("apiKeyErr");
-  if (!key) { err.textContent = "Please enter an API key."; return; }
+// ═══════════════════════════════════════
+//  LOCAL MODE — tmux bridge via Express
+// ═══════════════════════════════════════
 
-  err.textContent = "Validating...";
+async function localApi(path, opts = {}) {
   try {
-    const res = await callClaude(key, [{ role: "user", content: "Say hi" }], null, false);
-    if (res.error) { err.textContent = "Invalid key: " + (typeof res.error === "string" ? res.error : JSON.stringify(res.error)); return; }
-    setApiKey(key);
-    showApp();
-    toast("Welcome to Voz!");
-  } catch (e) {
-    err.textContent = "Connection error: " + e.message;
+    const r = await fetch(LOCAL_API + path, { headers: { "Content-Type": "application/json" }, ...opts });
+    return await r.json();
+  } catch (e) { return { error: e.message }; }
+}
+
+async function localRefresh() {
+  const data = await localApi("/api/status");
+  const dot = document.getElementById("tmuxDot");
+  const text = document.getElementById("tmuxText");
+
+  if (data.session) {
+    dot.className = "dot on";
+    text.textContent = "Session active";
+  } else {
+    dot.className = "dot off";
+    text.textContent = "Session stopped";
   }
-};
 
-document.getElementById("apiKeyInput").onkeydown = (e) => {
-  if (e.key === "Enter") document.getElementById("apiKeySave").click();
-};
+  if (data.projects) {
+    localProjects = data.projects.filter(p => p.name !== "voz");
+    // Sync local projects into state.sessions (merge, don't overwrite)
+    for (const lp of localProjects) {
+      const existing = state.sessions.find(s => s.id === "local-" + lp.name);
+      if (!existing) {
+        state.sessions.push({
+          id: "local-" + lp.name,
+          name: lp.name,
+          desc: lp.description || "",
+          local: true,
+          status: lp.active ? "live" : "idle",
+          output: lp.output || "",
+          lastActiveAt: Date.now(),
+        });
+      } else {
+        existing.status = lp.active ? "live" : "idle";
+        existing.output = lp.output || existing.output || "";
+        existing.desc = lp.description || existing.desc;
+      }
+    }
+    // Remove sessions for projects no longer in config
+    const localNames = new Set(localProjects.map(p => "local-" + p.name));
+    state.sessions = state.sessions.filter(s => !s.local || localNames.has(s.id));
+    saveState();
+  }
+  renderSidebar();
+  // Update open panels without full re-render (preserve scroll)
+  for (const sid of activePanels) {
+    const session = state.sessions.find(s => s.id === sid);
+    if (!session || !session.local) continue;
+    const termEl = document.getElementById("term-" + sid);
+    if (termEl && session.output) {
+      const wasAtBottom = termEl.scrollTop + termEl.clientHeight >= termEl.scrollHeight - 20;
+      termEl.innerHTML = colorize(session.output);
+      if (wasAtBottom) termEl.scrollTop = termEl.scrollHeight;
+    }
+    // Update dot
+    const dotEl = document.querySelector(`.panel[data-session-id="${sid}"] .panel__dot`);
+    if (dotEl) dotEl.className = "panel__dot " + (session.status === "live" ? "live" : "");
+  }
+}
 
-// ── API call ──
-async function callClaude(apiKey, messages, systemPrompt, stream = false) {
-  const body = {
-    model: getModel(),
-    max_tokens: 8192,
-    messages,
-    stream,
+async function localDispatch(name, message) {
+  const realName = name.replace("local-", "");
+  const r = await localApi(`/api/project/${realName}/dispatch`, {
+    method: "POST", body: JSON.stringify({ message }),
+  });
+  if (r.ok) { toast("Sent to " + realName); setTimeout(localRefresh, 2000); }
+  else toast("Error: " + (r.error || "failed"));
+}
+
+async function localStopProject(name) {
+  const realName = name.replace("local-", "");
+  await localApi(`/api/project/${realName}/stop`, { method: "POST" });
+  toast("Ctrl-C sent to " + realName);
+  setTimeout(localRefresh, 1000);
+}
+
+async function localStart() {
+  document.getElementById("tmuxDot").className = "dot loading";
+  document.getElementById("tmuxText").textContent = "Starting...";
+  toast("Starting Voz...");
+  await localApi("/api/start", { method: "POST" });
+  setTimeout(localRefresh, 3000);
+}
+
+async function localStop() {
+  document.getElementById("tmuxDot").className = "dot loading";
+  document.getElementById("tmuxText").textContent = "Stopping...";
+  toast("Stopping Voz...");
+  await localApi("/api/stop", { method: "POST" });
+  setTimeout(localRefresh, 3000);
+}
+
+function colorize(text) {
+  return text.split("\n").map(line => {
+    if (/error|Error|ERROR|fail|FAIL/i.test(line)) return `<span class="line-error">${esc(line)}</span>`;
+    if (/^(>>|\$|❯)/.test(line.trim())) return `<span class="line-prompt">${esc(line)}</span>`;
+    if (/info|complete|success|done/i.test(line)) return `<span class="line-info">${esc(line)}</span>`;
+    return esc(line);
+  }).join("\n");
+}
+
+// ═══════════════════════════════════════
+//  CLOUD MODE — Anthropic API via proxy
+// ═══════════════════════════════════════
+
+function createSession(name, desc, systemPrompt) {
+  return {
+    id: crypto.randomUUID(), name: name || "untitled", desc: desc || "",
+    systemPrompt: systemPrompt || "",
+    messages: [], status: "idle",
+    createdAt: Date.now(), lastActiveAt: Date.now(),
   };
-  if (systemPrompt) body.system = systemPrompt;
+}
 
-  const baseUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "" : "";
-  const res = await fetch(baseUrl + "/api/chat", {
+async function callClaude(apiKey, messages, systemPrompt, stream = false) {
+  const body = { model: getModel(), max_tokens: 8192, messages, stream };
+  if (systemPrompt) body.system = systemPrompt;
+  const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": apiKey },
     body: JSON.stringify(body),
   });
-
   if (stream) return res;
   return res.json();
 }
 
-// ── Sidebar ──
+async function cloudSend(sessionId, text) {
+  const session = state.sessions.find(s => s.id === sessionId);
+  if (!session) return;
+
+  session.messages.push({ role: "user", content: text });
+  session.status = "waiting";
+  session.lastActiveAt = Date.now();
+  saveState(); renderSidebar(); renderPanels();
+
+  const msgsEl = document.getElementById("msgs-" + sessionId);
+  if (msgsEl) {
+    const t = document.createElement("div");
+    t.className = "msg thinking"; t.id = "typing-" + sessionId;
+    t.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+    msgsEl.appendChild(t); msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  try {
+    const apiMsgs = session.messages.map(m => ({ role: m.role, content: m.content }));
+    const res = await callClaude(getApiKey(), apiMsgs, session.systemPrompt, true);
+    if (!res.ok) throw new Error(await res.text());
+
+    session.status = "live"; saveState(); renderSidebar();
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let text2 = "", buffer = "";
+
+    const t2 = document.getElementById("typing-" + sessionId);
+    if (t2) t2.remove();
+    const msgsEl2 = document.getElementById("msgs-" + sessionId);
+    let aEl = null;
+    if (msgsEl2) {
+      aEl = document.createElement("div"); aEl.className = "msg assistant";
+      msgsEl2.appendChild(aEl);
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n"); buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") continue;
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === "content_block_delta" && evt.delta?.text) {
+            text2 += evt.delta.text;
+            if (aEl) { aEl.textContent = text2; msgsEl2.scrollTop = msgsEl2.scrollHeight; }
+          }
+        } catch {}
+      }
+    }
+
+    if (text2) session.messages.push({ role: "assistant", content: text2 });
+    session.status = "idle"; session.lastActiveAt = Date.now();
+    saveState(); renderSidebar();
+  } catch (err) {
+    const t3 = document.getElementById("typing-" + sessionId);
+    if (t3) t3.remove();
+    session.status = "idle";
+    session.messages.push({ role: "assistant", content: "Error: " + err.message });
+    saveState(); renderSidebar(); renderPanels();
+    toast("Error: " + err.message);
+  }
+}
+
+// ═══════════════════════════════════════
+//  SHARED UI
+// ═══════════════════════════════════════
+
 function renderSidebar() {
   const list = document.getElementById("sessionList");
   list.innerHTML = "";
 
-  // Sort: active panels first, then by lastActiveAt
   const sorted = [...state.sessions].sort((a, b) => {
-    const aOpen = activePanels.includes(a.id) ? 1 : 0;
-    const bOpen = activePanels.includes(b.id) ? 1 : 0;
-    if (aOpen !== bOpen) return bOpen - aOpen;
-    return b.lastActiveAt - a.lastActiveAt;
+    const aO = activePanels.includes(a.id) ? 1 : 0;
+    const bO = activePanels.includes(b.id) ? 1 : 0;
+    if (aO !== bO) return bO - aO;
+    return (b.lastActiveAt || 0) - (a.lastActiveAt || 0);
   });
 
   sorted.forEach(s => {
     const el = document.createElement("div");
     el.className = "session-item" + (activePanels.includes(s.id) ? " active" : "");
-    const lastMsg = s.messages.length > 0 ? s.messages[s.messages.length - 1] : null;
-    const preview = lastMsg ? (lastMsg.role === "user" ? "You: " : "") + lastMsg.content.slice(0, 60) : "No messages yet";
     const dotClass = s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "";
+    let preview = "";
+    if (s.local && s.output) {
+      const lines = s.output.trim().split("\n");
+      preview = lines[lines.length - 1] || "";
+    } else if (s.messages && s.messages.length > 0) {
+      const last = s.messages[s.messages.length - 1];
+      preview = (last.role === "user" ? "You: " : "") + last.content.slice(0, 60);
+    } else {
+      preview = "No activity";
+    }
 
     el.innerHTML = `
       <div class="session-item__top">
         <div class="session-item__dot ${dotClass}"></div>
         <div class="session-item__name">${esc(s.name)}</div>
-        <button class="session-item__close" data-id="${s.id}" title="Remove">&times;</button>
+        ${!s.local ? '<button class="session-item__close" title="Remove">&times;</button>' : ""}
       </div>
       ${s.desc ? `<div class="session-item__desc">${esc(s.desc)}</div>` : ""}
       <div class="session-item__preview">${esc(preview)}</div>
@@ -620,23 +818,20 @@ function renderSidebar() {
       togglePanel(s.id);
     };
 
-    el.querySelector(".session-item__close").onclick = (e) => {
-      e.stopPropagation();
-      removeSession(s.id);
-    };
+    const closeBtn = el.querySelector(".session-item__close");
+    if (closeBtn) {
+      closeBtn.onclick = (e) => { e.stopPropagation(); removeSession(s.id); };
+    }
 
     list.appendChild(el);
   });
 }
 
-// ── Panel management ──
 function togglePanel(sessionId) {
   const idx = activePanels.indexOf(sessionId);
   if (idx >= 0) {
-    // Close it
     activePanels.splice(idx, 1);
   } else {
-    // Open it — max 3 panels, push oldest out
     if (activePanels.length >= 3) activePanels.shift();
     activePanels.push(sessionId);
   }
@@ -649,248 +844,106 @@ function renderPanels() {
   const empty = document.getElementById("emptyState");
 
   if (activePanels.length === 0) {
-    container.classList.add("hidden");
-    empty.classList.remove("hidden");
-    return;
+    container.classList.add("hidden"); empty.classList.remove("hidden"); return;
   }
-
-  empty.classList.add("hidden");
-  container.classList.remove("hidden");
+  empty.classList.add("hidden"); container.classList.remove("hidden");
   container.innerHTML = "";
 
   activePanels.forEach(sid => {
     const session = state.sessions.find(s => s.id === sid);
     if (!session) return;
-
     const panel = document.createElement("div");
-    panel.className = "panel";
-    panel.dataset.sessionId = sid;
-
+    panel.className = "panel"; panel.dataset.sessionId = sid;
     const dotClass = session.status === "live" ? "live" : session.status === "waiting" ? "waiting" : "";
 
-    panel.innerHTML = `
-      <div class="panel__header">
-        <div class="panel__dot ${dotClass}"></div>
-        <div class="panel__name">${esc(session.name)}</div>
-        <div class="panel__desc">${esc(session.desc)}</div>
-        <button class="panel__btn" title="Close panel" data-action="close">&times;</button>
-      </div>
-      <div class="panel__messages" id="msgs-${sid}">
-        ${session.messages.length === 0 ? '<div class="msg system">Start a conversation. This session is private to your browser.</div>' : ""}
-        ${session.messages.map(m => `<div class="msg ${m.role}">${esc(m.content)}</div>`).join("")}
-      </div>
-      <div class="panel__input">
-        <button class="mic-btn" title="Voice input" data-session="${sid}">&#127908;</button>
-        <textarea rows="1" placeholder="Message ${esc(session.name)}..." data-session="${sid}"></textarea>
-        <button class="send-btn" data-session="${sid}" ${session.status === "waiting" ? "disabled" : ""}>&#9654;</button>
-      </div>
-    `;
-
-    container.appendChild(panel);
-
-    // Scroll to bottom
-    const msgsEl = panel.querySelector(".panel__messages");
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-
-    // Close button
-    panel.querySelector('[data-action="close"]').onclick = () => togglePanel(sid);
-
-    // Send
-    const textarea = panel.querySelector("textarea");
-    const sendBtn = panel.querySelector(".send-btn");
-
-    const doSend = () => {
-      const text = textarea.value.trim();
-      if (!text || session.status === "waiting") return;
-      textarea.value = "";
-      textarea.style.height = "auto";
-      sendMessage(sid, text);
-    };
-
-    sendBtn.onclick = doSend;
-    textarea.onkeydown = (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        doSend();
-      }
-    };
-
-    // Auto-resize textarea
-    textarea.oninput = () => {
-      textarea.style.height = "auto";
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
-    };
-
-    // Mic button
-    const micBtn = panel.querySelector(".mic-btn");
-    micBtn.onclick = () => startVoiceInput(sid, micBtn, textarea);
+    if (session.local) {
+      // ── Local mode panel: terminal output + dispatch input ──
+      panel.innerHTML = `
+        <div class="panel__header">
+          <div class="panel__dot ${dotClass}"></div>
+          <div class="panel__name">${esc(session.name)}</div>
+          <div class="panel__desc">${esc(session.desc)}</div>
+          <button class="panel__btn" title="Refresh" onclick="localRefresh()">&#8635;</button>
+          <button class="panel__btn stop" title="Ctrl-C" data-action="stop">&#9632;</button>
+          <button class="panel__btn" title="Close" data-action="close">&times;</button>
+        </div>
+        <div class="panel__terminal" id="term-${sid}">
+          ${session.output ? colorize(session.output) : '<span style="color:rgba(255,255,255,0.2);font-style:italic">No output yet</span>'}
+        </div>
+        <div class="panel__input">
+          <input type="text" placeholder="Send command to ${esc(session.name)}..." data-session="${sid}" />
+          <button class="send-btn" data-session="${sid}">&#9654;</button>
+        </div>
+      `;
+      container.appendChild(panel);
+      const termEl = panel.querySelector(".panel__terminal");
+      termEl.scrollTop = termEl.scrollHeight;
+      panel.querySelector('[data-action="close"]').onclick = () => togglePanel(sid);
+      panel.querySelector('[data-action="stop"]').onclick = () => localStopProject(sid);
+      const input = panel.querySelector("input[type='text']");
+      const sendBtn = panel.querySelector(".send-btn");
+      const doSend = () => {
+        const msg = input.value.trim(); if (!msg) return;
+        input.value = ""; localDispatch(sid, msg);
+      };
+      sendBtn.onclick = doSend;
+      input.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
+    } else {
+      // ── Cloud mode panel: chat messages + streaming ──
+      panel.innerHTML = `
+        <div class="panel__header">
+          <div class="panel__dot ${dotClass}"></div>
+          <div class="panel__name">${esc(session.name)}</div>
+          <div class="panel__desc">${esc(session.desc)}</div>
+          <button class="panel__btn" title="Close" data-action="close">&times;</button>
+        </div>
+        <div class="panel__messages" id="msgs-${sid}">
+          ${session.messages.length === 0 ? '<div class="msg system">Start a conversation. Everything stays in your browser.</div>' : ""}
+          ${(session.messages || []).map(m => `<div class="msg ${m.role}">${esc(m.content)}</div>`).join("")}
+        </div>
+        <div class="panel__input">
+          <button class="mic-btn" title="Voice input" data-session="${sid}">&#127908;</button>
+          <textarea rows="1" placeholder="Message ${esc(session.name)}..." data-session="${sid}"></textarea>
+          <button class="send-btn" data-session="${sid}" ${session.status === "waiting" ? "disabled" : ""}>&#9654;</button>
+        </div>
+      `;
+      container.appendChild(panel);
+      const msgsEl = panel.querySelector(".panel__messages");
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      panel.querySelector('[data-action="close"]').onclick = () => togglePanel(sid);
+      const textarea = panel.querySelector("textarea");
+      const sendBtn = panel.querySelector(".send-btn");
+      const doSend = () => {
+        const t = textarea.value.trim(); if (!t || session.status === "waiting") return;
+        textarea.value = ""; textarea.style.height = "auto";
+        cloudSend(sid, t);
+      };
+      sendBtn.onclick = doSend;
+      textarea.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } };
+      textarea.oninput = () => { textarea.style.height = "auto"; textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px"; };
+      const micBtn = panel.querySelector(".mic-btn");
+      if (micBtn) micBtn.onclick = () => startVoiceInput(sid, micBtn, textarea);
+    }
   });
 }
 
-// ── Send message ──
-async function sendMessage(sessionId, text) {
-  const session = state.sessions.find(s => s.id === sessionId);
-  if (!session) return;
-
-  // Add user message
-  session.messages.push({ role: "user", content: text });
-  session.status = "waiting";
-  session.lastActiveAt = Date.now();
-  saveState();
-  renderSidebar();
-  renderPanels();
-
-  // Show typing indicator
-  const msgsEl = document.getElementById("msgs-" + sessionId);
-  if (msgsEl) {
-    const typingEl = document.createElement("div");
-    typingEl.className = "msg thinking";
-    typingEl.id = "typing-" + sessionId;
-    typingEl.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-    msgsEl.appendChild(typingEl);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  }
-
-  try {
-    // Build messages for API (only role + content)
-    const apiMessages = session.messages.map(m => ({ role: m.role, content: m.content }));
-
-    // Stream response
-    const res = await callClaude(getApiKey(), apiMessages, session.systemPrompt, true);
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
-    }
-
-    // Process SSE stream
-    session.status = "live";
-    saveState();
-    renderSidebar();
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let assistantText = "";
-    let buffer = "";
-
-    // Remove typing indicator
-    const typingEl2 = document.getElementById("typing-" + sessionId);
-    if (typingEl2) typingEl2.remove();
-
-    // Add assistant message element
-    const msgsEl2 = document.getElementById("msgs-" + sessionId);
-    let assistantEl = null;
-    if (msgsEl2) {
-      assistantEl = document.createElement("div");
-      assistantEl.className = "msg assistant";
-      msgsEl2.appendChild(assistantEl);
-    }
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") continue;
-
-        try {
-          const evt = JSON.parse(data);
-          if (evt.type === "content_block_delta" && evt.delta?.text) {
-            assistantText += evt.delta.text;
-            if (assistantEl) {
-              assistantEl.textContent = assistantText;
-              msgsEl2.scrollTop = msgsEl2.scrollHeight;
-            }
-          }
-        } catch {}
-      }
-    }
-
-    // Save final message
-    if (assistantText) {
-      session.messages.push({ role: "assistant", content: assistantText });
-    }
-    session.status = "idle";
-    session.lastActiveAt = Date.now();
-    saveState();
-    renderSidebar();
-
-    // Re-enable send button
-    const panel = document.querySelector(`.panel[data-session-id="${sessionId}"]`);
-    if (panel) {
-      const btn = panel.querySelector(".send-btn");
-      if (btn) btn.disabled = false;
-    }
-
-  } catch (err) {
-    // Remove typing indicator
-    const typingEl3 = document.getElementById("typing-" + sessionId);
-    if (typingEl3) typingEl3.remove();
-
-    session.status = "idle";
-    session.messages.push({ role: "assistant", content: "Error: " + err.message });
-    saveState();
-    renderSidebar();
-    renderPanels();
-    toast("Error: " + err.message);
-  }
-}
-
-// ── Voice input ──
+// ── Voice ──
 let currentRecognition = null;
-
 function startVoiceInput(sessionId, micBtn, textarea) {
   if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-    toast("Voice input not supported in this browser");
-    return;
+    toast("Voice not supported in this browser"); return;
   }
-
-  if (currentRecognition) {
-    currentRecognition.stop();
-    currentRecognition = null;
-    micBtn.classList.remove("recording");
-    return;
-  }
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = "en-US";
-
-  currentRecognition = recognition;
-  micBtn.classList.add("recording");
-
-  recognition.onresult = (event) => {
-    let transcript = "";
-    for (let i = 0; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript;
-    }
-    textarea.value = transcript;
-    textarea.style.height = "auto";
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
-  };
-
-  recognition.onend = () => {
-    currentRecognition = null;
-    micBtn.classList.remove("recording");
-  };
-
-  recognition.onerror = () => {
-    currentRecognition = null;
-    micBtn.classList.remove("recording");
-  };
-
-  recognition.start();
+  if (currentRecognition) { currentRecognition.stop(); currentRecognition = null; micBtn.classList.remove("recording"); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const r = new SR(); r.continuous = false; r.interimResults = true; r.lang = "en-US";
+  currentRecognition = r; micBtn.classList.add("recording");
+  r.onresult = (e) => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; textarea.value = t; };
+  r.onend = () => { currentRecognition = null; micBtn.classList.remove("recording"); };
+  r.onerror = () => { currentRecognition = null; micBtn.classList.remove("recording"); };
+  r.start();
 }
 
-// ── Add / remove sessions ──
+// ── Session CRUD (cloud) ──
 document.getElementById("addSessionBtn").onclick = () => {
   document.getElementById("addModal").classList.remove("hidden");
   document.getElementById("newName").value = "";
@@ -898,36 +951,36 @@ document.getElementById("addSessionBtn").onclick = () => {
   document.getElementById("newSystem").value = "";
   setTimeout(() => document.getElementById("newName").focus(), 100);
 };
-
-document.getElementById("addCancel").onclick = () => {
-  document.getElementById("addModal").classList.add("hidden");
-};
-
+document.getElementById("addCancel").onclick = () => document.getElementById("addModal").classList.add("hidden");
 document.getElementById("addCreate").onclick = () => {
   const name = document.getElementById("newName").value.trim();
   if (!name) { document.getElementById("newName").focus(); return; }
-  const desc = document.getElementById("newDesc").value.trim();
-  const sys = document.getElementById("newSystem").value.trim();
-  const session = createSession(name, desc, sys);
-  state.sessions.push(session);
-  saveState();
+  const s = createSession(name, document.getElementById("newDesc").value.trim(), document.getElementById("newSystem").value.trim());
+  state.sessions.push(s); saveState();
   document.getElementById("addModal").classList.add("hidden");
-  togglePanel(session.id);
-  toast("Session '" + name + "' created");
+  togglePanel(s.id); toast("Session '" + name + "' created");
 };
-
-// Enter to create in modal
-document.getElementById("newName").onkeydown = (e) => {
-  if (e.key === "Enter") document.getElementById("addCreate").click();
-};
+document.getElementById("newName").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("addCreate").click(); };
 
 function removeSession(id) {
   state.sessions = state.sessions.filter(s => s.id !== id);
   activePanels = activePanels.filter(sid => sid !== id);
-  saveState();
-  renderSidebar();
-  renderPanels();
+  saveState(); renderSidebar(); renderPanels();
 }
+
+// ── Onboarding (cloud) ──
+document.getElementById("apiKeySave").onclick = async () => {
+  const key = document.getElementById("apiKeyInput").value.trim();
+  const err = document.getElementById("apiKeyErr");
+  if (!key) { err.textContent = "Please enter an API key."; return; }
+  err.textContent = "Validating...";
+  try {
+    const r = await callClaude(key, [{ role: "user", content: "Say hi" }], null, false);
+    if (r.error) { err.textContent = "Invalid key: " + (typeof r.error === "string" ? r.error : JSON.stringify(r.error)); return; }
+    setApiKey(key); showApp(); toast("Welcome to Voz!");
+  } catch (e) { err.textContent = "Connection error: " + e.message; }
+};
+document.getElementById("apiKeyInput").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("apiKeySave").click(); };
 
 // ── Settings ──
 document.getElementById("settingsBtn").onclick = () => {
@@ -935,52 +988,30 @@ document.getElementById("settingsBtn").onclick = () => {
   document.getElementById("settingsModel").value = getModel();
   document.getElementById("settingsModal").classList.remove("hidden");
 };
-document.getElementById("settingsCancel").onclick = () => {
-  document.getElementById("settingsModal").classList.add("hidden");
-};
+document.getElementById("settingsCancel").onclick = () => document.getElementById("settingsModal").classList.add("hidden");
 document.getElementById("settingsSave").onclick = () => {
-  const key = document.getElementById("settingsKey").value.trim();
-  const model = document.getElementById("settingsModel").value.trim();
-  if (key) setApiKey(key);
-  if (model) setModel(model);
+  const k = document.getElementById("settingsKey").value.trim();
+  const m = document.getElementById("settingsModel").value.trim();
+  if (k) setApiKey(k); if (m) setModel(m);
   document.getElementById("settingsModal").classList.add("hidden");
   toast("Settings saved");
 };
 
-document.getElementById("changeKeyBtn").onclick = () => {
-  document.getElementById("settingsBtn").click();
-};
-
-// ── Escape to close modals ──
+// ── Modals ──
 document.onkeydown = (e) => {
   if (e.key === "Escape") {
     document.getElementById("addModal").classList.add("hidden");
     document.getElementById("settingsModal").classList.add("hidden");
   }
 };
-
-// Click outside modal to close
-document.getElementById("addModal").onclick = (e) => {
-  if (e.target === document.getElementById("addModal"))
-    document.getElementById("addModal").classList.add("hidden");
-};
-document.getElementById("settingsModal").onclick = (e) => {
-  if (e.target === document.getElementById("settingsModal"))
-    document.getElementById("settingsModal").classList.add("hidden");
-};
+document.getElementById("addModal").onclick = (e) => { if (e.target.id === "addModal") e.target.classList.add("hidden"); };
+document.getElementById("settingsModal").onclick = (e) => { if (e.target.id === "settingsModal") e.target.classList.add("hidden"); };
 
 // ── Helpers ──
-function esc(str) {
-  const d = document.createElement("div");
-  d.textContent = str;
-  return d.innerHTML;
-}
-
+function esc(str) { const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
 function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 3000);
+  const t = document.getElementById("toast"); t.textContent = msg;
+  t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3000);
 }
 
 // ── Boot ──
