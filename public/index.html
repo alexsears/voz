@@ -404,10 +404,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
 <div class="modal-overlay hidden" id="settingsModal">
   <div class="modal">
     <h3>Settings</h3>
-    <label>Anthropic API Key</label>
+    <label>Anthropic API Key (cloud mode)</label>
     <input type="password" id="settingsKey" placeholder="sk-ant-api03-..." />
+    <label>OpenAI API Key (auto-pilot)</label>
+    <input type="password" id="settingsOpenAI" placeholder="sk-..." />
+    <label style="font-size:10px;color:var(--dim);margin-top:2px;text-transform:none;letter-spacing:0">Used by auto-pilot to reason about agent questions while you're away</label>
     <label>Default Model</label>
-    <input type="text" id="settingsModel" placeholder="claude-sonnet-4-5-20250929" />
+    <input type="text" id="settingsModel" placeholder="claude-opus-4-6" />
     <div class="modal__btns">
       <button class="cancel-btn" id="settingsCancel">Cancel</button>
       <button class="create-btn" id="settingsSave">Save</button>
@@ -424,8 +427,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
 
 const STATE_KEY = "voz_state";
 const API_KEY_KEY = "voz_api_key";
+const OPENAI_KEY_KEY = "voz_openai_key";
 const MODEL_KEY = "voz_model";
-const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
+const DEFAULT_MODEL = "claude-opus-4-6";
 const STALE_AFTER = 2;
 const VOZ_ID = "local-voz";
 
@@ -445,6 +449,8 @@ function getApiKey() { return localStorage.getItem(API_KEY_KEY) || ""; }
 function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
 function getModel() { return localStorage.getItem(MODEL_KEY) || DEFAULT_MODEL; }
 function setModel(m) { localStorage.setItem(MODEL_KEY, m || DEFAULT_MODEL); }
+function getOpenAIKey() { return localStorage.getItem(OPENAI_KEY_KEY) || ""; }
+function setOpenAIKey(k) { localStorage.setItem(OPENAI_KEY_KEY, k); }
 
 // ═══════════════════════════════════════════════════════
 //  Claude state parser
@@ -609,13 +615,62 @@ async function autopilotCheck() {
     if (apCooldowns[agent.id] && now - apCooldowns[agent.id] < AP_COOLDOWN) continue;
 
     if (cs.state === "asking") {
-      // Agent is asking a question — tell it to proceed
-      const msg = "The user is away. Use your best judgment and proceed. If it's a destructive or irreversible action, skip it and move on to the next task.";
+      let msg;
+      const openaiKey = getOpenAIKey();
+
+      if (openaiKey) {
+        // Consult OpenAI for a thoughtful answer
+        msg = await consultOpenAI(agent, cs, openaiKey);
+      }
+
+      if (!msg) {
+        // Fallback if no key or API call failed
+        msg = "The user is away. Use your best judgment and proceed. If it's a destructive or irreversible action, skip it and move on to the next task.";
+      }
+
       await localDispatchSilent(agent.id, msg);
       apCooldowns[agent.id] = now;
-      apLog.push({ time: now, agent: agent.name, action: "auto-answered", preview: cs.preview });
-      console.log(`[autopilot] Nudged ${agent.name}: ${cs.preview}`);
+      apLog.push({ time: now, agent: agent.name, action: openaiKey ? "AI-decided" : "auto-proceeded", preview: cs.preview, response: msg });
+      console.log(`[autopilot] ${openaiKey ? "AI answered" : "Nudged"} ${agent.name}: ${msg.slice(0, 80)}`);
     }
+  }
+}
+
+async function consultOpenAI(agent, cs, apiKey) {
+  try {
+    // Get more context — last 30 lines of the agent's terminal
+    const context = (agent.output || "").split("\n").slice(-30).join("\n");
+
+    const systemPrompt = `You are Voz, an AI orchestrator managing coding agents. The user is away and has enabled auto-pilot.
+
+An agent named "${agent.name}" (${agent.desc || "no description"}) needs a decision. Your job:
+1. Read the agent's terminal output to understand what it's asking
+2. Make a reasonable decision on behalf of the user
+3. Reply with ONLY the answer to send to the agent — no preamble, no explanation to the user
+4. Be concise and direct — the agent will receive your words as typed input
+5. If it's asking for a y/n confirmation on something safe, say "y"
+6. If it's a design/architecture choice, pick the simpler option
+7. If it's asking about something destructive (deleting data, force pushing, dropping tables), say "skip this and move on to the next task"
+8. Keep answers under 100 words`;
+
+    const r = await localApi("/api/openai/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        apiKey,
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Agent "${agent.name}" terminal output:\n\n${context}\n\nThe agent's current state: ${cs.label}\nDetected question/prompt: ${cs.preview}\n\nWhat should I tell this agent?` },
+        ],
+      }),
+    });
+
+    if (r.ok && r.reply) return r.reply.trim();
+    console.warn("[autopilot] OpenAI error:", r.error);
+    return null;
+  } catch (e) {
+    console.warn("[autopilot] OpenAI call failed:", e);
+    return null;
   }
 }
 
@@ -947,7 +1002,14 @@ document.getElementById("autopilotBtn").onclick = () => {
   autopilot = !autopilot;
   localStorage.setItem(AP_KEY, autopilot ? "on" : "off");
   updateAutopilotUI();
-  toast(autopilot ? "Auto-pilot on \u2014 I'll handle things while you're away" : "Auto-pilot off");
+  if (autopilot) {
+    const hasAI = !!getOpenAIKey();
+    toast(hasAI
+      ? "Auto-pilot on \u2014 GPT-4o will handle agent decisions"
+      : "Auto-pilot on \u2014 add OpenAI key in Settings for smarter decisions");
+  } else {
+    toast("Auto-pilot off");
+  }
 };
 updateAutopilotUI();
 
@@ -1005,16 +1067,20 @@ document.getElementById("apiKeyInput").onkeydown = (e) => { if (e.key === "Enter
 
 document.getElementById("settingsBtn").onclick = () => {
   document.getElementById("settingsKey").value = getApiKey();
+  document.getElementById("settingsOpenAI").value = getOpenAIKey();
   document.getElementById("settingsModel").value = getModel();
   document.getElementById("settingsModal").classList.remove("hidden");
 };
 document.getElementById("settingsCancel").onclick = () => document.getElementById("settingsModal").classList.add("hidden");
 document.getElementById("settingsSave").onclick = () => {
   const k = document.getElementById("settingsKey").value.trim();
+  const o = document.getElementById("settingsOpenAI").value.trim();
   const m = document.getElementById("settingsModel").value.trim();
-  if (k) setApiKey(k); if (m) setModel(m);
+  if (k) setApiKey(k);
+  setOpenAIKey(o); // allow clearing
+  if (m) setModel(m);
   document.getElementById("settingsModal").classList.add("hidden");
-  toast("Settings saved");
+  toast(o ? "Settings saved \u2014 auto-pilot will use GPT-4o" : "Settings saved");
 };
 
 document.onkeydown = (e) => {

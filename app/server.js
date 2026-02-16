@@ -242,6 +242,34 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, session: sessionExists() });
 });
 
+// OpenAI proxy for auto-pilot
+app.post("/api/openai/chat", async (req, res) => {
+  const { apiKey, messages, model } = req.body;
+  if (!apiKey) return res.status(400).json({ error: "apiKey required" });
+  if (!messages) return res.status(400).json({ error: "messages required" });
+  try {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model || "gpt-4o",
+        messages,
+        max_tokens: 1024,
+        temperature: 0.3,
+      }),
+    });
+    const data = await r.json();
+    if (data.error) return res.status(400).json({ error: data.error.message || data.error });
+    const reply = data.choices?.[0]?.message?.content || "";
+    res.json({ ok: true, reply });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Serve static frontend from public/
 app.use(express.static(join(ORCH_DIR, "public")));
 app.get("/", (_req, res) => {
