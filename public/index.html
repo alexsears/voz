@@ -24,7 +24,7 @@
   --yellow: #fbbf24;
   --terminal-bg: #060d1a;
   --terminal-font: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-  --sb-w: 220px;
+  --sb-w: 240px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -109,14 +109,15 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
 .sb__list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
 
 .sb-item {
-  padding: 8px 10px; border-radius: 8px;
+  padding: 10px 10px; border-radius: 10px;
   cursor: pointer; transition: all var(--transition);
-  margin-bottom: 2px; border: 1px solid transparent;
-  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px; border: 1px solid transparent;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .sb-item:hover { background: rgba(255,255,255,0.04); }
 .sb-item.open { background: rgba(124,92,255,0.12); border-color: var(--border-active); }
 .sb-item.orch { border-left: 2px solid var(--accent); }
+.sb-item__top { display: flex; align-items: center; gap: 8px; }
 .sb-item__dot {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
   background: rgba(255,255,255,0.15);
@@ -127,6 +128,32 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
 .sb-item__info { flex: 1; min-width: 0; }
 .sb-item__name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-item__desc { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+
+/* interaction state card */
+.sb-item__state {
+  background: rgba(0,0,0,0.25); border-radius: 7px;
+  padding: 6px 8px; width: 100%;
+}
+.sb-item__state-row {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600;
+}
+.sb-item__state-icon { font-size: 11px; line-height: 1; flex-shrink: 0; }
+.sb-item__state-label { white-space: nowrap; }
+.sb-item__state-label.ready { color: rgba(255,255,255,0.35); }
+.sb-item__state-label.idle { color: var(--green); }
+.sb-item__state-label.working { color: var(--yellow); }
+.sb-item__state-label.asking { color: var(--accent); }
+.sb-item__state-label.error { color: var(--red); }
+.sb-item__state-label.shell { color: rgba(255,255,255,0.25); }
+.sb-item__preview {
+  font-size: 10px; color: var(--muted);
+  margin-top: 3px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-word;
+}
+@keyframes pulse-working { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.sb-item__state-row.is-working .sb-item__state-icon { animation: pulse-working 1.5s infinite; }
 
 /* new session button */
 .sb__new {
@@ -176,6 +203,19 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
 .panel__dot.waiting { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
 .panel__name { font-weight: 700; font-size: 13px; }
 .panel__desc { font-size: 11px; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel__activity {
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 5px;
+  background: rgba(0,0,0,0.3); font-size: 11px;
+}
+.panel__activity-icon { font-size: 11px; line-height: 1; }
+.panel__activity-label { font-weight: 600; }
+.panel__activity-label.ready { color: rgba(255,255,255,0.35); }
+.panel__activity-label.idle { color: var(--green); }
+.panel__activity-label.working { color: var(--yellow); }
+.panel__activity-label.asking { color: var(--accent); }
+.panel__activity-label.error { color: var(--red); }
+.panel__activity-label.shell { color: rgba(255,255,255,0.25); }
 .panel__btn {
   width: 26px; height: 26px; border: none; border-radius: 5px;
   background: transparent; color: var(--muted); cursor: pointer;
@@ -609,6 +649,127 @@ function renderAll() {
   renderPanels();
 }
 
+// ── Claude state parser ──
+function parseClaudeState(output) {
+  if (!output || !output.trim()) return { state: "unknown", icon: "?", label: "No output", preview: "" };
+
+  const lines = output.split("\n");
+  const trimmed = lines.map(l => l.trim()).filter(l => l.length > 0);
+  const raw = output;
+  const last5 = trimmed.slice(-5).join("\n");
+
+  // Back at bash shell (Claude not running)
+  if (/\$\s*$/.test(trimmed[trimmed.length - 1] || "") && /@/.test(trimmed[trimmed.length - 1] || "")) {
+    return { state: "shell", icon: "\u25cb", label: "Not running", preview: "Claude exited — at shell prompt" };
+  }
+
+  // Fresh Claude prompt — never interacted (Try line near the end)
+  const last8 = trimmed.slice(-8).join("\n");
+  if (/Try \u201c/.test(last8) || /Try "/.test(last8)) {
+    return { state: "ready", icon: "\u25cc", label: "Ready", preview: "Waiting for first message" };
+  }
+
+  // Permission / confirmation prompt
+  if (/Allow\?|Do you want to proceed|\(y\/n\)|\(Y\/n\)|yes\/no/i.test(last5)) {
+    const q = trimmed.filter(l => /Allow\?|\?|proceed|confirm/i.test(l)).pop() || "";
+    return { state: "asking", icon: "\u2753", label: "Needs input", preview: q || "Waiting for your confirmation" };
+  }
+
+  // AskUserQuestion-style interactive prompt
+  if (/\d+\.\s|Select|Choose|Which|pick/i.test(last5) && /\?\s*$/.test(last5)) {
+    const questionLine = trimmed.filter(l => /\?/.test(l)).pop() || "";
+    return { state: "asking", icon: "\ud83d\udcac", label: "Asked you", preview: cleanPreview(questionLine) };
+  }
+
+  // Working — tool execution or spinner
+  const workIndicators = [
+    /\u23f5\s+Read\b/,
+    /\u23f5\s+Edit\b/,
+    /\u23f5\s+Write\b/,
+    /\u23f5\s+Bash\b/,
+    /\u23f5\s+Glob\b/,
+    /\u23f5\s+Grep\b/,
+    /\u23f5\s+Task\b/,
+    /\u29eb\s/,
+    /^\s*\u280[0-9a-f]/,
+    /Running\b.*\.\.\./,
+    /Thinking\b/,
+    /\u23f3/,
+  ];
+  for (const pat of workIndicators) {
+    if (pat.test(last5)) {
+      const workLine = trimmed.slice(-3).find(l => pat.test(l)) || trimmed[trimmed.length - 1] || "";
+      return { state: "working", icon: "\u2699\ufe0f", label: "Working", preview: cleanPreview(workLine) };
+    }
+  }
+
+  // Actively outputting text (Claude responding — no prompt at end)
+  const lastLine = trimmed[trimmed.length - 1] || "";
+  const hasPrompt = /^\u276f\s*$/.test(lastLine) || /^\u276f\s/.test(lastLine);
+
+  if (!hasPrompt) {
+    // Check if the last content looks like Claude's output
+    const recentContent = trimmed.slice(-6);
+    const hasResponse = recentContent.some(l => /^\s*\u23bf|^\s*\u2502|^\s*\u2514/.test(l));
+    if (hasResponse) {
+      return { state: "working", icon: "\u270d\ufe0f", label: "Responding", preview: cleanPreview(lastLine) };
+    }
+  }
+
+  // Idle at prompt — extract last interaction
+  if (hasPrompt || /\u276f/.test(last5)) {
+    // Find the last user message (line starting with ❯ followed by text)
+    let lastUserMsg = "";
+    let lastClaudeMsg = "";
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+      const line = trimmed[i];
+      if (/^\u276f\s+\S/.test(line) && !lastUserMsg) {
+        lastUserMsg = line.replace(/^\u276f\s+/, "");
+      }
+      // Claude response lines (⎿ prefix)
+      if (/^\u23bf\s/.test(line) && !lastClaudeMsg) {
+        lastClaudeMsg = line.replace(/^\u23bf\s+/, "");
+      }
+      if (lastUserMsg && lastClaudeMsg) break;
+    }
+
+    // Find if Claude asked a question in its response
+    const claudeLines = [];
+    let inResponse = false;
+    for (let i = 0; i < trimmed.length; i++) {
+      if (/^\u23bf/.test(trimmed[i])) { inResponse = true; claudeLines.push(trimmed[i].replace(/^\u23bf\s*/, "")); }
+      else if (/^\u276f/.test(trimmed[i])) { inResponse = false; claudeLines.length = 0; }
+      else if (inResponse) claudeLines.push(trimmed[i]);
+    }
+    const lastClaudeBlock = claudeLines.join(" ").trim();
+    const askedQuestion = /\?\s*$/.test(lastClaudeBlock) || /\bwhat\b|\bwhich\b|\bshould\b|\bwould you\b|\bdo you\b/i.test(lastClaudeBlock.slice(-120));
+
+    if (askedQuestion && lastClaudeBlock) {
+      return { state: "asking", icon: "\ud83d\udcac", label: "Asked you", preview: cleanPreview(lastClaudeBlock.slice(-100)) };
+    }
+    if (lastClaudeMsg) {
+      return { state: "idle", icon: "\u2714\ufe0f", label: "Done", preview: cleanPreview(lastClaudeMsg) };
+    }
+    if (lastUserMsg) {
+      return { state: "idle", icon: "\u2714\ufe0f", label: "Done", preview: "You: " + cleanPreview(lastUserMsg) };
+    }
+    return { state: "idle", icon: "\u23f8\ufe0f", label: "Idle", preview: "Waiting for a message" };
+  }
+
+  // Fallback
+  return { state: "unknown", icon: "\u2022", label: "Active", preview: cleanPreview(lastLine) };
+}
+
+function cleanPreview(text) {
+  // Strip ANSI codes, special chars, collapse whitespace
+  return text
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/[\u23f5\u23bf\u276f\u29eb\u2502\u2514\u250c\u2500]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 function renderSidebar() {
   const list = document.getElementById("sessionList");
   list.innerHTML = "";
@@ -618,11 +779,25 @@ function renderSidebar() {
     const isOrch = s.name === "voz";
     el.className = "sb-item" + (openPanels.includes(s.id) ? " open" : "") + (isOrch ? " orch" : "");
     const dc = dotClass(s);
+    const cs = parseClaudeState(s.output);
+    // Store parsed state on session for panel header use
+    s._parsed = cs;
+
+    const workingClass = cs.state === "working" ? " is-working" : "";
+
     el.innerHTML = `
-      <div class="sb-item__dot ${dc}"></div>
-      <div class="sb-item__info">
-        <div class="sb-item__name">${isOrch ? "&#x1f399; " : ""}${esc(s.name)}</div>
-        ${isOrch ? `<div class="sb-item__desc">orchestrator &middot; voicemode</div>` : s.desc ? `<div class="sb-item__desc">${esc(s.desc)}</div>` : ""}
+      <div class="sb-item__top">
+        <div class="sb-item__dot ${dc}"></div>
+        <div class="sb-item__info">
+          <div class="sb-item__name">${isOrch ? "\ud83c\udf99\ufe0f " : ""}${esc(s.name)}</div>
+        </div>
+      </div>
+      <div class="sb-item__state">
+        <div class="sb-item__state-row${workingClass}">
+          <span class="sb-item__state-icon">${cs.icon}</span>
+          <span class="sb-item__state-label ${cs.state}">${esc(cs.label)}</span>
+        </div>
+        ${cs.preview ? `<div class="sb-item__preview">${esc(cs.preview)}</div>` : ""}
       </div>
     `;
     el.onclick = () => togglePanel(s.id);
@@ -677,13 +852,17 @@ function renderPanels() {
 
 function buildPanel(panel, s) {
   const dc = s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "";
+  const cs = s._parsed || parseClaudeState(s.output);
 
   if (s.local) {
     panel.innerHTML = `
       <div class="panel__header">
         <div class="panel__dot ${dc}"></div>
         <div class="panel__name">${esc(s.name)}</div>
-        <div class="panel__desc">${esc(s.desc)}</div>
+        <div class="panel__activity" id="activity-${s.id}">
+          <span class="panel__activity-icon">${cs.icon}</span>
+          <span class="panel__activity-label ${cs.state}">${esc(cs.label)}</span>
+        </div>
         <button class="panel__btn stop" title="Ctrl-C" data-action="stop">&#9632;</button>
         <button class="panel__btn" title="Close" data-action="close">&times;</button>
       </div>
@@ -743,6 +922,15 @@ function updatePanelInPlace(s) {
   if (panel) {
     const dot = panel.querySelector(".panel__dot");
     if (dot) dot.className = "panel__dot " + (s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "");
+    // Update activity badge
+    const act = document.getElementById("activity-" + s.id);
+    if (act) {
+      const cs = s._parsed || parseClaudeState(s.output);
+      act.querySelector(".panel__activity-icon").textContent = cs.icon;
+      const lbl = act.querySelector(".panel__activity-label");
+      lbl.textContent = cs.label;
+      lbl.className = "panel__activity-label " + cs.state;
+    }
   }
 }
 
