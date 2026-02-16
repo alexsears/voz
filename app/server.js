@@ -1,8 +1,11 @@
 import express from "express";
-import { execSync, exec } from "child_process";
+import { exec } from "child_process";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ORCH_DIR = join(__dirname, "..");
@@ -33,6 +36,12 @@ app.use((_req, res, next) => {
   next();
 });
 
+// *** Serve static files FIRST so the page loads instantly ***
+app.use(express.static(join(ORCH_DIR, "public")));
+app.get("/", (_req, res) => {
+  res.sendFile(join(ORCH_DIR, "public", "index.html"));
+});
+
 // --- YAML parser (mirrors the bash scripts) ---
 function parseProjects() {
   let lines;
@@ -60,25 +69,32 @@ function parseProjects() {
   return projects;
 }
 
-// --- Helpers ---
+// --- Async helpers (non-blocking) ---
 function wsl(cmd) {
   return `${WSL} bash -c "unset CLAUDECODE 2>/dev/null; ${cmd.replace(/"/g, '\\"')}"`;
 }
 
 const execOpts = { encoding: "utf-8", env: cleanEnv };
 
-function sessionExists() {
+// Cached session state — refreshed in background
+let cachedSession = null;   // { active: bool, windows: string[], ts: number }
+const CACHE_TTL = 2000;     // 2s cache
+
+async function sessionExists() {
+  if (cachedSession && Date.now() - cachedSession.ts < CACHE_TTL) return cachedSession.active;
   try {
-    execSync(wsl(`tmux has-session -t ${SESSION} 2>/dev/null`), execOpts);
+    await execAsync(wsl(`tmux has-session -t ${SESSION} 2>/dev/null`), execOpts);
+    cachedSession = { active: true, windows: cachedSession?.windows || [], ts: Date.now() };
     return true;
   } catch {
+    cachedSession = { active: false, windows: [], ts: Date.now() };
     return false;
   }
 }
 
-function capturePane(windowName, lines = 40) {
+async function capturePane(windowName, lines = 40) {
   try {
-    const raw = execSync(
+    const { stdout: raw } = await execAsync(
       wsl(`tmux capture-pane -t ${SESSION}:${windowName} -p 2>/dev/null`),
       { ...execOpts, timeout: 5000 }
     );
@@ -89,68 +105,123 @@ function capturePane(windowName, lines = 40) {
   }
 }
 
-function windowExists(name) {
+async function windowExists(name) {
   try {
-    const out = execSync(
+    const { stdout: out } = await execAsync(
       wsl(`tmux list-windows -t ${SESSION} -F '#{window_name}' 2>/dev/null`),
       execOpts
     );
-    return out.split("\n").map((l) => l.trim()).includes(name);
+    const windows = out.split("\n").map((l) => l.trim());
+    // Update cache with window list
+    if (cachedSession) cachedSession.windows = windows;
+    return windows.includes(name);
   } catch {
     return false;
   }
 }
 
+// Capture ALL panes in one WSL call (much faster than N separate calls)
+async function captureAllPanes(projectNames, lines = 20) {
+  // Build a single bash command that captures all panes
+  const cmds = projectNames.map(
+    name => `echo "___PANE_${name}___"; tmux capture-pane -t ${SESSION}:${name} -p 2>/dev/null || echo "___NOWINDOW___"`
+  );
+  const combined = cmds.join("; ");
+
+  try {
+    const { stdout: raw } = await execAsync(wsl(combined), { ...execOpts, timeout: 10000 });
+    const result = {};
+    let currentName = null;
+    let currentLines = [];
+
+    for (const line of raw.split("\n")) {
+      const marker = line.match(/^___PANE_(.+)___$/);
+      if (marker) {
+        if (currentName) {
+          const trimmed = currentLines.slice(-lines).join("\n");
+          result[currentName] = currentLines.some(l => l === "___NOWINDOW___") ? null : trimmed;
+        }
+        currentName = marker[1];
+        currentLines = [];
+      } else {
+        currentLines.push(line);
+      }
+    }
+    if (currentName) {
+      const trimmed = currentLines.slice(-lines).join("\n");
+      result[currentName] = currentLines.some(l => l === "___NOWINDOW___") ? null : trimmed;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+async function wslExec(cmd) {
+  return execAsync(wsl(cmd), execOpts);
+}
+
 // --- Routes ---
 
 // List projects from config
-app.get("/api/projects", (_req, res) => {
+app.get("/api/projects", async (_req, res) => {
   const projects = parseProjects();
-  const active = sessionExists();
-  const result = projects.map((p) => ({
-    ...p,
-    windowActive: active && windowExists(p.name),
-  }));
-  res.json({ session: active, projects: result });
+  const active = await sessionExists();
+  if (!active) return res.json({ session: false, projects: projects.map(p => ({ ...p, windowActive: false })) });
+
+  // One WSL call to get all windows
+  try {
+    const { stdout } = await execAsync(
+      wsl(`tmux list-windows -t ${SESSION} -F '#{window_name}' 2>/dev/null`), execOpts
+    );
+    const windows = new Set(stdout.split("\n").map(l => l.trim()));
+    const result = projects.map(p => ({ ...p, windowActive: windows.has(p.name) }));
+    res.json({ session: true, projects: result });
+  } catch {
+    res.json({ session: active, projects: projects.map(p => ({ ...p, windowActive: false })) });
+  }
 });
 
 // Get output from a project pane
-app.get("/api/project/:name/output", (req, res) => {
+app.get("/api/project/:name/output", async (req, res) => {
   const lines = parseInt(req.query.lines) || 40;
-  if (!sessionExists()) return res.json({ error: "session_not_running", output: null });
-  const output = capturePane(req.params.name, lines);
+  if (!(await sessionExists())) return res.json({ error: "session_not_running", output: null });
+  const output = await capturePane(req.params.name, lines);
   if (output === null) return res.json({ error: "window_not_found", output: null });
   res.json({ output });
 });
 
-// Get status of all projects
-app.get("/api/status", (_req, res) => {
-  if (!sessionExists()) return res.json({ session: false, projects: [] });
+// Get status of all projects — ONE WSL call for all panes
+app.get("/api/status", async (_req, res) => {
+  if (!(await sessionExists())) return res.json({ session: false, projects: [] });
   const projects = parseProjects();
-  const result = projects.map((p) => {
-    const output = capturePane(p.name, 20);
-    return { ...p, active: output !== null, output };
-  });
-  // Also get voz pane
-  const orchOutput = capturePane("voz", 20);
+  const allNames = [...projects.map(p => p.name), "voz"];
+
+  // Single WSL call captures everything
+  const panes = await captureAllPanes(allNames);
+
+  const result = projects.map((p) => ({
+    ...p,
+    active: panes[p.name] !== null && panes[p.name] !== undefined,
+    output: panes[p.name] || null,
+  }));
+
   res.json({
     session: true,
-    voz: { output: orchOutput },
+    voz: { output: panes["voz"] || null },
     projects: result,
   });
 });
 
 // Dispatch a command to a project
-app.post("/api/project/:name/dispatch", (req, res) => {
+app.post("/api/project/:name/dispatch", async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
-  if (!sessionExists()) return res.status(503).json({ error: "session not running" });
-  if (!windowExists(req.params.name))
-    return res.status(404).json({ error: `window '${req.params.name}' not found` });
+  if (!(await sessionExists())) return res.status(503).json({ error: "session not running" });
 
   try {
     const safeMsg = message.replace(/"/g, '\\"').replace(/'/g, "'\\''");
-    execSync(
+    await execAsync(
       wsl(`bash '${WSL_ORCH_DIR}/dispatch.sh' '${req.params.name}' '${safeMsg}'`),
       { ...execOpts, timeout: 10000 }
     );
@@ -161,10 +232,10 @@ app.post("/api/project/:name/dispatch", (req, res) => {
 });
 
 // Send Ctrl-C to a project
-app.post("/api/project/:name/stop", (req, res) => {
-  if (!sessionExists()) return res.status(503).json({ error: "session not running" });
+app.post("/api/project/:name/stop", async (req, res) => {
+  if (!(await sessionExists())) return res.status(503).json({ error: "session not running" });
   try {
-    execSync(wsl(`tmux send-keys -t ${SESSION}:${req.params.name} C-c`), execOpts);
+    await wslExec(`tmux send-keys -t ${SESSION}:${req.params.name} C-c`);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -172,11 +243,11 @@ app.post("/api/project/:name/stop", (req, res) => {
 });
 
 // Send /exit to a project's Claude
-app.post("/api/project/:name/exit", (req, res) => {
-  if (!sessionExists()) return res.status(503).json({ error: "session not running" });
+app.post("/api/project/:name/exit", async (req, res) => {
+  if (!(await sessionExists())) return res.status(503).json({ error: "session not running" });
   try {
-    execSync(wsl(`tmux send-keys -t ${SESSION}:${req.params.name} -l '/exit'`), execOpts);
-    execSync(wsl(`tmux send-keys -t ${SESSION}:${req.params.name} Enter`), execOpts);
+    await wslExec(`tmux send-keys -t ${SESSION}:${req.params.name} -l '/exit'`);
+    await wslExec(`tmux send-keys -t ${SESSION}:${req.params.name} Enter`);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -184,19 +255,20 @@ app.post("/api/project/:name/exit", (req, res) => {
 });
 
 // Restart a project's Claude (exit + relaunch)
-app.post("/api/project/:name/restart", (req, res) => {
-  if (!sessionExists()) return res.status(503).json({ error: "session not running" });
+app.post("/api/project/:name/restart", async (req, res) => {
+  if (!(await sessionExists())) return res.status(503).json({ error: "session not running" });
   const name = req.params.name;
-  if (!windowExists(name))
+  if (!(await windowExists(name)))
     return res.status(404).json({ error: `window '${name}' not found` });
 
   // Find claude.exe path
   let claudePath = "";
   try {
-    claudePath = execSync(
+    const { stdout } = await execAsync(
       wsl(`which claude.exe 2>/dev/null || echo /mnt/c/Users/*/\\.local/bin/claude.exe`),
       execOpts
-    ).trim().split("\n")[0];
+    );
+    claudePath = stdout.trim().split("\n")[0];
   } catch {
     claudePath = "/mnt/c/Users/asear/.local/bin/claude.exe";
   }
@@ -206,23 +278,18 @@ app.post("/api/project/:name/restart", (req, res) => {
   const launchCmd = `/mnt/c/Windows/System32/cmd.exe /c "set CLAUDECODE= && ${winPath} --dangerously-skip-permissions"`;
 
   try {
-    // Send Ctrl-C first to interrupt anything running
-    execSync(wsl(`tmux send-keys -t ${SESSION}:${name} C-c`), execOpts);
-    // Send /exit
-    execSync(wsl(`tmux send-keys -t ${SESSION}:${name} -l '/exit'`), execOpts);
-    execSync(wsl(`tmux send-keys -t ${SESSION}:${name} Enter`), execOpts);
+    await wslExec(`tmux send-keys -t ${SESSION}:${name} C-c`);
+    await wslExec(`tmux send-keys -t ${SESSION}:${name} -l '/exit'`);
+    await wslExec(`tmux send-keys -t ${SESSION}:${name} Enter`);
   } catch { /* may fail if not in Claude, that's ok */ }
 
   // Wait for exit, then relaunch
-  setTimeout(() => {
-    try {
-      // Send Ctrl-C again in case we're at a bash prompt with lingering process
-      execSync(wsl(`tmux send-keys -t ${SESSION}:${name} C-c`), execOpts);
-    } catch {}
-    setTimeout(() => {
+  setTimeout(async () => {
+    try { await wslExec(`tmux send-keys -t ${SESSION}:${name} C-c`); } catch {}
+    setTimeout(async () => {
       try {
-        execSync(wsl(`tmux send-keys -t ${SESSION}:${name} -l '${launchCmd}'`), execOpts);
-        execSync(wsl(`tmux send-keys -t ${SESSION}:${name} Enter`), execOpts);
+        await wslExec(`tmux send-keys -t ${SESSION}:${name} -l '${launchCmd}'`);
+        await wslExec(`tmux send-keys -t ${SESSION}:${name} Enter`);
       } catch {}
     }, 1000);
   }, 3000);
@@ -231,10 +298,11 @@ app.post("/api/project/:name/restart", (req, res) => {
 });
 
 // Start the full voz session
-app.post("/api/start", (_req, res) => {
-  if (sessionExists()) return res.json({ ok: true, message: "already running" });
+app.post("/api/start", async (_req, res) => {
+  if (await sessionExists()) return res.json({ ok: true, message: "already running" });
   exec(wsl(`bash '${WSL_ORCH_DIR}/start.sh'`), { env: cleanEnv }, (err, stdout, stderr) => {
     if (err) return res.status(500).json({ error: stderr || err.message });
+    cachedSession = null; // bust cache
     res.json({ ok: true, output: stdout });
   });
 });
@@ -242,6 +310,7 @@ app.post("/api/start", (_req, res) => {
 // Stop everything
 app.post("/api/stop", (_req, res) => {
   exec(wsl(`bash '${WSL_ORCH_DIR}/stop.sh'`), { env: cleanEnv }, (err, stdout) => {
+    cachedSession = null; // bust cache
     if (err) return res.json({ ok: true, message: "stop attempted" });
     res.json({ ok: true, output: stdout });
   });
@@ -285,8 +354,8 @@ app.get("/api/memory/status", (_req, res) => {
   res.json({ projects: result });
 });
 
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, session: sessionExists() });
+app.get("/api/health", async (_req, res) => {
+  res.json({ ok: true, session: await sessionExists() });
 });
 
 // OpenAI proxy for auto-pilot
@@ -315,12 +384,6 @@ app.post("/api/openai/chat", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
-
-// Serve static frontend from public/
-app.use(express.static(join(ORCH_DIR, "public")));
-app.get("/", (_req, res) => {
-  res.sendFile(join(ORCH_DIR, "public", "index.html"));
 });
 
 // Auto-sync memory every 5 minutes
