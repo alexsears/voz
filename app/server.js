@@ -261,36 +261,31 @@ app.post("/api/project/:name/restart", async (req, res) => {
   if (!(await windowExists(name)))
     return res.status(404).json({ error: `window '${name}' not found` });
 
-  // Find claude.exe path
-  let claudePath = "";
-  try {
-    const { stdout } = await execAsync(
-      wsl(`which claude.exe 2>/dev/null || echo /mnt/c/Users/*/\\.local/bin/claude.exe`),
-      execOpts
-    );
-    claudePath = stdout.trim().split("\n")[0];
-  } catch {
-    claudePath = "/mnt/c/Users/asear/.local/bin/claude.exe";
-  }
-  const winPath = claudePath
-    .replace(/^\/mnt\/([a-z])/, (_, d) => d.toUpperCase() + ":")
-    .replace(/\//g, "\\\\");
-  const launchCmd = `/mnt/c/Windows/System32/cmd.exe /c "set CLAUDECODE= && ${winPath} --dangerously-skip-permissions"`;
-
+  // Send Ctrl-C + /exit to stop current Claude
   try {
     await wslExec(`tmux send-keys -t ${SESSION}:${name} C-c`);
     await wslExec(`tmux send-keys -t ${SESSION}:${name} -l '/exit'`);
     await wslExec(`tmux send-keys -t ${SESSION}:${name} Enter`);
   } catch { /* may fail if not in Claude, that's ok */ }
 
-  // Wait for exit, then relaunch
+  // Wait for exit, then relaunch — use tmux send-keys directly (no wsl() wrapper)
+  // to avoid double-escaping the complex cmd.exe command
+  const launchKeys = `/mnt/c/Windows/System32/cmd.exe /c "set CLAUDECODE= && C:\\\\Users\\\\asear\\\\.local\\\\bin\\\\claude.exe --dangerously-skip-permissions"`;
+
   setTimeout(async () => {
     try { await wslExec(`tmux send-keys -t ${SESSION}:${name} C-c`); } catch {}
     setTimeout(async () => {
       try {
-        await wslExec(`tmux send-keys -t ${SESSION}:${name} -l '${launchCmd}'`);
-        await wslExec(`tmux send-keys -t ${SESSION}:${name} Enter`);
-      } catch {}
+        // Send the launch command character-by-character via -l, then Enter
+        await execAsync(
+          `wsl -d Ubuntu -- tmux send-keys -t ${SESSION}:${name} -l '${launchKeys}'`,
+          execOpts
+        );
+        await execAsync(
+          `wsl -d Ubuntu -- tmux send-keys -t ${SESSION}:${name} Enter`,
+          execOpts
+        );
+      } catch (e) { console.error("[restart] relaunch error:", e.message); }
     }, 1000);
   }, 3000);
 
