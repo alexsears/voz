@@ -24,136 +24,153 @@
   --yellow: #fbbf24;
   --terminal-bg: #060d1a;
   --terminal-font: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-  --rail-w: 200px;
+  --sb-w: 220px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  display: flex;
-  flex-direction: column;
-}
+body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
 
-/* ── Onboarding overlay (cloud mode) ── */
-.onboarding {
-  position: fixed; inset: 0; z-index: 100;
-  background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-}
+/* ── Onboarding (cloud) ── */
+.onboarding { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; }
 .onboarding.hidden { display: none; }
-.onboarding__card {
-  max-width: 460px; width: 100%; padding: 48px 36px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  text-align: center;
-}
-.onboarding__logo {
-  width: 64px; height: 64px; margin: 0 auto 20px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #071022; display: grid; place-items: center;
-  font-weight: 800; font-size: 24px;
-}
-.onboarding h1 {
-  font-size: 28px; font-weight: 800; margin-bottom: 8px;
-  background: linear-gradient(135deg, var(--text), var(--accent-2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+.onboarding__card { max-width: 460px; width: 100%; padding: 48px 36px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); text-align: center; }
+.onboarding__logo { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #071022; display: grid; place-items: center; font-weight: 800; font-size: 24px; }
+.onboarding h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, var(--text), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .onboarding p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
 .onboarding__input { display: flex; gap: 8px; }
-.onboarding__input input {
-  flex: 1; padding: 12px 16px;
-  background: var(--terminal-bg); border: 1px solid var(--border);
-  border-radius: 10px; color: var(--text);
-  font-family: var(--terminal-font); font-size: 13px; outline: none;
-}
+.onboarding__input input { flex: 1; padding: 12px 16px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--terminal-font); font-size: 13px; outline: none; }
 .onboarding__input input:focus { border-color: var(--accent); }
-.onboarding__input button {
-  padding: 12px 20px; border: none; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7));
-  color: white; font-weight: 700; font-size: 14px; cursor: pointer;
-}
+.onboarding__input button { padding: 12px 20px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); color: white; font-weight: 700; font-size: 14px; cursor: pointer; }
 .onboarding__err { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
 .onboarding__hint { margin-top: 20px; font-size: 11px; color: var(--muted); opacity: 0.6; line-height: 1.5; }
 
-/* ── Top bar ── */
-.topbar {
-  height: 48px; flex-shrink: 0;
+/* ── App shell ── */
+.app { display: flex; height: 100%; }
+.app.hidden { display: none; }
+
+/* ── Session browser (left sidebar) ── */
+.sb {
+  width: var(--sb-w); min-width: var(--sb-w); flex-shrink: 0;
   background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 16px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
 }
-.topbar.hidden { display: none; }
-.topbar__logo {
+.sb__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sb__logo {
   width: 28px; height: 28px; border-radius: 7px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #071022; display: grid; place-items: center;
   font-weight: 800; font-size: 12px; flex-shrink: 0;
 }
-.topbar__title { font-weight: 700; font-size: 15px; }
-.topbar__mode {
-  font-size: 10px; font-weight: 600;
-  padding: 3px 8px; border-radius: 6px;
+.sb__title { font-weight: 700; font-size: 15px; flex: 1; }
+.sb__mode {
+  font-size: 9px; font-weight: 600;
+  padding: 2px 7px; border-radius: 5px;
   text-transform: uppercase; letter-spacing: 0.5px;
 }
-.topbar__mode.local { background: rgba(52,211,153,0.15); color: var(--green); }
-.topbar__mode.cloud { background: rgba(124,92,255,0.15); color: var(--accent); }
-.topbar__dot {
-  width: 8px; height: 8px; border-radius: 50%; margin-left: 8px;
+.sb__mode.local { background: rgba(52,211,153,0.15); color: var(--green); }
+.sb__mode.cloud { background: rgba(124,92,255,0.15); color: var(--accent); }
+
+/* tmux status row */
+.sb__status {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--muted);
 }
-.topbar__dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.topbar__dot.off { background: var(--red); box-shadow: 0 0 6px var(--red); }
-.topbar__dot.loading { background: var(--yellow); animation: pulse-dot 1s infinite; }
-.topbar__status { font-size: 12px; color: var(--muted); }
-.topbar__spacer { flex: 1; }
-.topbar__btn {
-  padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px;
-  background: transparent; color: var(--muted); cursor: pointer;
-  font-size: 11px; font-family: var(--font); transition: all var(--transition);
-}
-.topbar__btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-.topbar__btn.primary {
-  background: rgba(124,92,255,0.15); border-color: var(--border-active); color: var(--accent);
-}
-.topbar__btn.primary:hover { background: rgba(124,92,255,0.25); }
-.topbar__btn.danger:hover { background: rgba(248,113,113,0.15); color: var(--red); border-color: rgba(248,113,113,0.3); }
+.sb__status.hidden { display: none; }
+.sb__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sb__dot.on { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.sb__dot.off { background: var(--red); box-shadow: 0 0 5px var(--red); }
+.sb__dot.loading { background: var(--yellow); animation: pulse-dot 1s infinite; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-/* ── Main layout ── */
-.workspace { flex: 1; display: flex; overflow: hidden; }
-.workspace.hidden { display: none; }
-
-/* ── Live panels area ── */
-.live-area { flex: 1; display: flex; overflow: hidden; min-width: 0; }
-.live-area.empty-state {
-  align-items: center; justify-content: center;
-  color: var(--muted); text-align: center;
+.sb__status-text { flex: 1; }
+.sb__status-btns { display: flex; gap: 3px; }
+.sb__status-btns button {
+  padding: 3px 8px; border: 1px solid var(--border); border-radius: 5px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 10px; font-family: var(--font); transition: all var(--transition);
 }
-.live-area.empty-state h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.live-area.empty-state p { font-size: 13px; max-width: 360px; line-height: 1.6; }
+.sb__status-btns button:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 
-/* ── Session panel ── */
+/* session list */
+.sb__label {
+  padding: 10px 16px 6px;
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.sb__list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.sb__list::-webkit-scrollbar { width: 3px; }
+.sb__list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+.sb-item {
+  padding: 8px 10px; border-radius: 8px;
+  cursor: pointer; transition: all var(--transition);
+  margin-bottom: 2px; border: 1px solid transparent;
+  display: flex; align-items: center; gap: 8px;
+}
+.sb-item:hover { background: rgba(255,255,255,0.04); }
+.sb-item.open { background: rgba(124,92,255,0.12); border-color: var(--border-active); }
+.sb-item__dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.15);
+}
+.sb-item__dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.sb-item__dot.busy { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
+.sb-item__dot.stale { background: rgba(255,255,255,0.12); }
+.sb-item__info { flex: 1; min-width: 0; }
+.sb-item__name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-item__desc { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+
+/* new session button */
+.sb__new {
+  margin: 4px 8px; padding: 8px 10px; border-radius: 8px;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  color: var(--muted); font-size: 12px; transition: all var(--transition);
+  border: 1px dashed rgba(255,255,255,0.1);
+}
+.sb__new:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+/* footer */
+.sb__footer {
+  padding: 10px 12px; border-top: 1px solid var(--border);
+  display: flex; gap: 4px;
+}
+.sb__footer button {
+  flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--muted); font-size: 10px; cursor: pointer;
+  font-family: var(--font); transition: all var(--transition);
+}
+.sb__footer button:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+
+/* ── Main area ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.main__empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--muted); text-align: center; padding: 40px;
+}
+.main__empty h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.main__empty p { font-size: 13px; max-width: 360px; line-height: 1.6; }
+.panels { flex: 1; display: flex; overflow: hidden; }
+
+/* ── Panel ── */
 .panel {
   flex: 1; display: flex; flex-direction: column;
   border-right: 1px solid var(--border); min-width: 0;
 }
 .panel:last-child { border-right: none; }
-
 .panel__header {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 14px; border-bottom: 1px solid var(--border);
   background: rgba(0,0,0,0.15); flex-shrink: 0;
 }
-.panel__dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: rgba(255,255,255,0.15); flex-shrink: 0;
-}
+.panel__dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); flex-shrink: 0; }
 .panel__dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .panel__dot.waiting { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
 .panel__name { font-weight: 700; font-size: 13px; }
@@ -166,9 +183,8 @@ body {
 }
 .panel__btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 .panel__btn.stop:hover { background: rgba(248,113,113,0.15); color: var(--red); }
-.panel__btn.minimize:hover { background: rgba(251,191,36,0.15); color: var(--yellow); }
 
-/* ── Terminal output ── */
+/* Terminal */
 .panel__terminal {
   flex: 1; overflow-y: auto; padding: 10px 12px;
   background: var(--terminal-bg);
@@ -182,18 +198,11 @@ body {
 .panel__terminal .line-error { color: var(--red); }
 .panel__terminal .line-info { color: var(--accent); }
 
-/* ── Chat messages (cloud mode) ── */
-.panel__messages {
-  flex: 1; overflow-y: auto; padding: 16px 20px;
-  display: flex; flex-direction: column; gap: 12px;
-}
+/* Chat */
+.panel__messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
 .panel__messages::-webkit-scrollbar { width: 4px; }
 .panel__messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-.msg {
-  max-width: 85%; padding: 12px 16px;
-  border-radius: 12px; font-size: 13px; line-height: 1.6;
-  word-wrap: break-word; white-space: pre-wrap;
-}
+.msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap; }
 .msg.user { align-self: flex-end; background: rgba(124,92,255,0.2); border: 1px solid rgba(124,92,255,0.3); }
 .msg.assistant { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--border); font-family: var(--terminal-font); font-size: 12px; }
 .msg.system { align-self: center; background: transparent; color: var(--muted); font-size: 11px; font-style: italic; }
@@ -203,7 +212,7 @@ body {
 .typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.4; } 40% { opacity: 1; } }
 
-/* ── Input bar ── */
+/* Input */
 .panel__input {
   padding: 8px 12px; border-top: 1px solid var(--border);
   background: rgba(0,0,0,0.1);
@@ -223,109 +232,37 @@ body {
   cursor: pointer; display: grid; place-items: center;
   transition: all var(--transition); flex-shrink: 0;
 }
-.panel__input .send-btn {
-  background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7));
-  color: white; font-size: 14px;
-}
+.panel__input .send-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); color: white; font-size: 14px; }
 .panel__input .send-btn:hover { box-shadow: 0 4px 16px rgba(124,92,255,0.4); }
 .panel__input .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.panel__input .mic-btn {
-  background: rgba(255,255,255,0.04); color: var(--muted);
-  border: 1px solid var(--border); font-size: 16px;
-}
-.panel__input .mic-btn.recording {
-  color: var(--red); background: rgba(248,113,113,0.15);
-  border-color: rgba(248,113,113,0.3); animation: pulse 1.5s infinite;
-}
+.panel__input .mic-btn { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); font-size: 16px; }
+.panel__input .mic-btn.recording { color: var(--red); background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.3); animation: pulse 1.5s infinite; }
 @keyframes pulse { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(248,113,113,0.15); } }
 
-/* ── Stale rail (right side) ── */
-.stale-rail {
-  width: var(--rail-w); min-width: var(--rail-w); flex-shrink: 0;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-.stale-rail.hidden { display: none; }
-.stale-rail__header {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.stale-rail__list {
-  flex: 1; overflow-y: auto; padding: 6px;
-}
-.stale-rail__list::-webkit-scrollbar { width: 3px; }
-.stale-rail__list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-
-.stale-card {
-  padding: 10px 12px; border-radius: 10px;
-  cursor: pointer; transition: all var(--transition);
-  margin-bottom: 4px; border: 1px solid transparent;
-}
-.stale-card:hover { background: rgba(255,255,255,0.04); border-color: var(--border); }
-.stale-card__top { display: flex; align-items: center; gap: 6px; }
-.stale-card__dot {
-  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(255,255,255,0.2);
-}
-.stale-card__dot.on { background: var(--green); opacity: 0.5; }
-.stale-card__name { font-weight: 600; font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stale-card__preview {
-  font-size: 10px; color: rgba(232,236,255,0.35); margin-top: 4px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-family: var(--terminal-font);
-  padding-left: 12px;
-}
-
 /* ── Modals ── */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 50;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-}
+.modal-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; }
 .modal-overlay.hidden { display: none; }
-.modal {
-  width: 420px; padding: 28px;
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-}
+.modal { width: 420px; padding: 28px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
 .modal label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; margin-top: 14px; }
 .modal label:first-of-type { margin-top: 0; }
-.modal input, .modal textarea {
-  width: 100%; padding: 10px 14px;
-  background: var(--terminal-bg); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text); font-family: var(--font);
-  font-size: 13px; outline: none;
-}
+.modal input, .modal textarea { width: 100%; padding: 10px 14px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
 .modal input:focus, .modal textarea:focus { border-color: var(--accent); }
 .modal textarea { resize: vertical; min-height: 60px; }
-.modal textarea.sysprompt { min-height: 120px; font-family: var(--terminal-font); font-size: 12px; }
+.modal textarea.sysprompt { min-height: 100px; font-family: var(--terminal-font); font-size: 12px; }
 .modal__btns { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
-.modal__btns button {
-  padding: 10px 20px; border-radius: 8px; font-size: 13px;
-  font-weight: 600; cursor: pointer; transition: all var(--transition); font-family: var(--font);
-}
+.modal__btns button { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); font-family: var(--font); }
 .modal__btns .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); }
 .modal__btns .create-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); border: none; color: white; }
 
-/* ── Toast ── */
-.toast {
-  position: fixed; bottom: 20px; right: 20px; z-index: 200;
-  padding: 12px 20px; border-radius: 10px;
-  background: var(--panel); border: 1px solid var(--border);
-  font-size: 13px; box-shadow: var(--shadow);
-  transform: translateY(80px); opacity: 0; transition: all 300ms ease;
-}
+/* Toast */
+.toast { position: fixed; bottom: 20px; right: 20px; z-index: 200; padding: 12px 20px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); font-size: 13px; box-shadow: var(--shadow); transform: translateY(80px); opacity: 0; transition: all 300ms ease; }
 .toast.show { transform: translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
 
-<!-- Onboarding (cloud mode) -->
+<!-- Onboarding -->
 <div class="onboarding hidden" id="onboarding">
   <div class="onboarding__card">
     <div class="onboarding__logo">V</div>
@@ -337,46 +274,59 @@ body {
       <button id="apiKeySave">Start</button>
     </div>
     <div class="onboarding__err" id="apiKeyErr"></div>
-    <div class="onboarding__hint">Your key is stored in localStorage. <br>Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">console.anthropic.com</a></div>
+    <div class="onboarding__hint">Stored in localStorage only. <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">Get a key</a></div>
   </div>
 </div>
 
-<!-- Top bar -->
-<div class="topbar hidden" id="topbar">
-  <div class="topbar__logo">V</div>
-  <div class="topbar__title">Voz</div>
-  <div class="topbar__mode" id="modeLabel"></div>
-  <div class="topbar__dot off" id="tmuxDot"></div>
-  <div class="topbar__status" id="tmuxText"></div>
-  <div class="topbar__spacer"></div>
-  <button class="topbar__btn primary" id="startBtn" onclick="localStart()">Start All</button>
-  <button class="topbar__btn danger" id="stopBtn" onclick="localStop()">Stop All</button>
-  <button class="topbar__btn" id="addBtn" style="display:none">+ New</button>
-  <button class="topbar__btn" id="settingsBtn">Settings</button>
-</div>
-
-<!-- Workspace -->
-<div class="workspace hidden" id="workspace">
-  <div class="live-area" id="liveArea">
-    <!-- Live panels rendered here -->
-  </div>
-  <div class="stale-rail hidden" id="staleRail">
-    <div class="stale-rail__header">Idle</div>
-    <div class="stale-rail__list" id="staleList">
-      <!-- Stale cards rendered here -->
+<!-- App -->
+<div class="app hidden" id="app">
+  <!-- Session browser sidebar -->
+  <aside class="sb">
+    <div class="sb__header">
+      <div class="sb__logo">V</div>
+      <div class="sb__title">Voz</div>
+      <div class="sb__mode" id="modeLabel"></div>
     </div>
+    <div class="sb__status hidden" id="localStatus">
+      <div class="sb__dot off" id="tmuxDot"></div>
+      <div class="sb__status-text" id="tmuxText">Checking...</div>
+      <div class="sb__status-btns">
+        <button onclick="localStart()">Start</button>
+        <button onclick="localStop()">Stop</button>
+      </div>
+    </div>
+    <div class="sb__label">Sessions</div>
+    <div class="sb__list" id="sessionList"></div>
+    <div class="sb__new" id="newSessionBtn">
+      <span style="font-size:16px; line-height:1">+</span>
+      <span>New Session</span>
+    </div>
+    <div class="sb__footer">
+      <button id="settingsBtn">Settings</button>
+    </div>
+  </aside>
+
+  <!-- Main panel area -->
+  <div class="main" id="mainArea">
+    <div class="main__empty" id="emptyState">
+      <h2>Select a session</h2>
+      <p>Click a session in the browser to open it, or create a new one.</p>
+    </div>
+    <div class="panels" id="panels" style="display:none"></div>
   </div>
 </div>
 
-<!-- Add session modal (cloud mode) -->
+<!-- New session modal -->
 <div class="modal-overlay hidden" id="addModal">
   <div class="modal">
     <h3>New Session</h3>
     <label>Name</label>
-    <input type="text" id="newName" placeholder="my-api" />
+    <input type="text" id="newName" placeholder="my-project" />
+    <label>Path (local mode)</label>
+    <input type="text" id="newPath" placeholder="~/code/my-project" />
     <label>Description</label>
     <input type="text" id="newDesc" placeholder="REST backend service" />
-    <label>System prompt (optional)</label>
+    <label>System prompt (cloud mode, optional)</label>
     <textarea class="sysprompt" id="newSystem" placeholder="You are a senior backend engineer..."></textarea>
     <div class="modal__btns">
       <button class="cancel-btn" id="addCancel">Cancel</button>
@@ -404,22 +354,21 @@ body {
 
 <script>
 // ═══════════════════════════════════════
-//  Voz — Live panels + stale rail
+//  Voz — Session browser + panels
 // ═══════════════════════════════════════
 
 const STATE_KEY = "voz_state";
 const API_KEY_KEY = "voz_api_key";
 const MODEL_KEY = "voz_model";
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
-const STALE_THRESHOLD = 2; // refreshes with no change = stale
+const STALE_AFTER = 2; // refresh cycles
 
 let MODE = "cloud";
 let LOCAL_API = "";
 let state = loadState();
-let prevOutputs = {};     // session id → output snapshot
-let staleCounters = {};   // session id → unchanged refresh count
-let pinnedLive = new Set(); // manually pinned to live area
-let autoRefreshTimer = null;
+let openPanels = [];       // session IDs open as panels (max 3)
+let prevOutputs = {};
+let staleCounters = {};
 
 function loadState() {
   try { const r = localStorage.getItem(STATE_KEY); if (r) return JSON.parse(r); } catch {}
@@ -431,30 +380,22 @@ function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
 function getModel() { return localStorage.getItem(MODEL_KEY) || DEFAULT_MODEL; }
 function setModel(m) { localStorage.setItem(MODEL_KEY, m || DEFAULT_MODEL); }
 
-// ── Staleness detection ──
-function updateStaleness(session) {
-  const output = (session.output || "").trim();
-  const prev = prevOutputs[session.id];
-  if (prev === undefined) {
-    // First time seeing this session — mark as live
-    prevOutputs[session.id] = output;
-    staleCounters[session.id] = 0;
-    return;
-  }
-  if (prev === output) {
-    staleCounters[session.id] = (staleCounters[session.id] || 0) + 1;
-  } else {
-    staleCounters[session.id] = 0;
-    prevOutputs[session.id] = output;
-  }
+function updateStaleness(s) {
+  const out = (s.output || "").trim();
+  if (prevOutputs[s.id] === undefined) { prevOutputs[s.id] = out; staleCounters[s.id] = 0; return; }
+  if (prevOutputs[s.id] === out) { staleCounters[s.id] = (staleCounters[s.id] || 0) + 1; }
+  else { staleCounters[s.id] = 0; prevOutputs[s.id] = out; }
+}
+function isStale(s) { return (staleCounters[s.id] || 0) >= STALE_AFTER; }
+
+// dotClass for a session
+function dotClass(s) {
+  if (s.status === "waiting") return "busy";
+  if (s.local && isStale(s)) return "stale";
+  if (s.status === "live") return "live";
+  return "stale";
 }
 
-function isStale(session) {
-  if (pinnedLive.has(session.id)) return false;
-  return (staleCounters[session.id] || 0) >= STALE_THRESHOLD;
-}
-
-// ── Mode detection ──
 async function detectMode() {
   try {
     const r = await fetch("http://localhost:4800/api/health", { signal: AbortSignal.timeout(1500) });
@@ -468,28 +409,30 @@ async function detectMode() {
 async function init() {
   MODE = await detectMode();
   const label = document.getElementById("modeLabel");
-  document.getElementById("topbar").classList.remove("hidden");
-  document.getElementById("workspace").classList.remove("hidden");
 
   if (MODE === "local") {
     label.textContent = "LOCAL";
-    label.className = "topbar__mode local";
-    document.getElementById("onboarding").classList.add("hidden");
+    label.className = "sb__mode local";
+    document.getElementById("localStatus").classList.remove("hidden");
+    document.getElementById("app").classList.remove("hidden");
     await localRefresh();
-    autoRefreshTimer = setInterval(localRefresh, 4000);
+    // Auto-open first session
+    if (openPanels.length === 0 && state.sessions.length > 0) {
+      openPanels.push(state.sessions[0].id);
+    }
+    renderAll();
+    setInterval(localRefresh, 4000);
   } else {
     label.textContent = "CLOUD";
-    label.className = "topbar__mode cloud";
-    document.getElementById("startBtn").style.display = "none";
-    document.getElementById("stopBtn").style.display = "none";
-    document.getElementById("tmuxDot").style.display = "none";
-    document.getElementById("tmuxText").style.display = "none";
-    document.getElementById("addBtn").style.display = "";
+    label.className = "sb__mode cloud";
+    document.getElementById("localStatus").classList.add("hidden");
+    // Hide path field in new session modal
+    document.getElementById("newPath").parentElement.previousElementSibling.style.display = "none";
+    document.getElementById("newPath").parentElement.style.display = "none";
     if (getApiKey()) {
-      render();
+      document.getElementById("app").classList.remove("hidden");
+      renderAll();
     } else {
-      document.getElementById("topbar").classList.add("hidden");
-      document.getElementById("workspace").classList.add("hidden");
       document.getElementById("onboarding").classList.remove("hidden");
     }
   }
@@ -511,13 +454,8 @@ async function localRefresh() {
   const dot = document.getElementById("tmuxDot");
   const text = document.getElementById("tmuxText");
 
-  if (data.session) {
-    dot.className = "topbar__dot on";
-    text.textContent = "Running";
-  } else {
-    dot.className = "topbar__dot off";
-    text.textContent = "Stopped";
-  }
+  if (data.session) { dot.className = "sb__dot on"; text.textContent = "Running"; }
+  else { dot.className = "sb__dot off"; text.textContent = "Stopped"; }
 
   if (data.projects) {
     const projects = data.projects.filter(p => p.name !== "voz");
@@ -528,7 +466,7 @@ async function localRefresh() {
         state.sessions.push({
           id: sid, name: lp.name, desc: lp.description || "",
           local: true, status: lp.active ? "live" : "idle",
-          output: lp.output || "", lastActiveAt: Date.now(),
+          output: lp.output || "",
         });
       } else {
         existing.status = lp.active ? "live" : "idle";
@@ -541,7 +479,7 @@ async function localRefresh() {
     state.sessions = state.sessions.filter(s => !s.local || localNames.has(s.id));
     saveState();
   }
-  render();
+  renderAll();
 }
 
 async function localDispatch(name, message) {
@@ -561,7 +499,7 @@ async function localStopProject(name) {
 }
 
 async function localStart() {
-  document.getElementById("tmuxDot").className = "topbar__dot loading";
+  document.getElementById("tmuxDot").className = "sb__dot loading";
   document.getElementById("tmuxText").textContent = "Starting...";
   toast("Starting all sessions...");
   await localApi("/api/start", { method: "POST" });
@@ -569,7 +507,7 @@ async function localStart() {
 }
 
 async function localStop() {
-  document.getElementById("tmuxDot").className = "topbar__dot loading";
+  document.getElementById("tmuxDot").className = "sb__dot loading";
   document.getElementById("tmuxText").textContent = "Stopping...";
   toast("Stopping all sessions...");
   await localApi("/api/stop", { method: "POST" });
@@ -590,12 +528,9 @@ function colorize(text) {
 // ═══════════════════════════════════════
 
 function createSession(name, desc, systemPrompt) {
-  return {
-    id: crypto.randomUUID(), name: name || "untitled", desc: desc || "",
-    systemPrompt: systemPrompt || "",
-    messages: [], status: "idle",
-    createdAt: Date.now(), lastActiveAt: Date.now(),
-  };
+  return { id: crypto.randomUUID(), name: name || "untitled", desc: desc || "",
+    systemPrompt: systemPrompt || "", messages: [], status: "idle",
+    createdAt: Date.now(), lastActiveAt: Date.now() };
 }
 
 async function callClaude(apiKey, messages, systemPrompt, stream = false) {
@@ -606,18 +541,15 @@ async function callClaude(apiKey, messages, systemPrompt, stream = false) {
     headers: { "Content-Type": "application/json", "x-api-key": apiKey },
     body: JSON.stringify(body),
   });
-  if (stream) return res;
-  return res.json();
+  return stream ? res : res.json();
 }
 
 async function cloudSend(sessionId, text) {
   const session = state.sessions.find(s => s.id === sessionId);
   if (!session) return;
-
   session.messages.push({ role: "user", content: text });
-  session.status = "waiting";
-  session.lastActiveAt = Date.now();
-  saveState(); render();
+  session.status = "waiting"; session.lastActiveAt = Date.now();
+  saveState(); renderAll();
 
   const msgsEl = document.getElementById("msgs-" + sessionId);
   if (msgsEl) {
@@ -631,30 +563,21 @@ async function cloudSend(sessionId, text) {
     const apiMsgs = session.messages.map(m => ({ role: m.role, content: m.content }));
     const res = await callClaude(getApiKey(), apiMsgs, session.systemPrompt, true);
     if (!res.ok) throw new Error(await res.text());
-
-    session.status = "live"; saveState();
+    session.status = "live"; saveState(); renderSidebar();
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let text2 = "", buffer = "";
-
-    const t2 = document.getElementById("typing-" + sessionId);
-    if (t2) t2.remove();
+    const t2 = document.getElementById("typing-" + sessionId); if (t2) t2.remove();
     const msgsEl2 = document.getElementById("msgs-" + sessionId);
     let aEl = null;
-    if (msgsEl2) {
-      aEl = document.createElement("div"); aEl.className = "msg assistant";
-      msgsEl2.appendChild(aEl);
-    }
-
+    if (msgsEl2) { aEl = document.createElement("div"); aEl.className = "msg assistant"; msgsEl2.appendChild(aEl); }
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+      const { done, value } = await reader.read(); if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n"); buffer = lines.pop() || "";
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") continue;
+        const data = line.slice(6).trim(); if (data === "[DONE]") continue;
         try {
           const evt = JSON.parse(data);
           if (evt.type === "content_block_delta" && evt.delta?.text) {
@@ -664,227 +587,182 @@ async function cloudSend(sessionId, text) {
         } catch {}
       }
     }
-
     if (text2) session.messages.push({ role: "assistant", content: text2 });
     session.status = "idle"; session.lastActiveAt = Date.now();
-    saveState(); render();
+    saveState(); renderSidebar();
   } catch (err) {
-    const t3 = document.getElementById("typing-" + sessionId);
-    if (t3) t3.remove();
+    const t3 = document.getElementById("typing-" + sessionId); if (t3) t3.remove();
     session.status = "idle";
     session.messages.push({ role: "assistant", content: "Error: " + err.message });
-    saveState(); render();
+    saveState(); renderAll();
     toast("Error: " + err.message);
   }
 }
 
 // ═══════════════════════════════════════
-//  RENDER — live panels + stale rail
+//  RENDER
 // ═══════════════════════════════════════
 
-function render() {
-  const liveArea = document.getElementById("liveArea");
-  const staleRail = document.getElementById("staleRail");
-  const staleList = document.getElementById("staleList");
+function renderAll() {
+  renderSidebar();
+  renderPanels();
+}
 
-  // Partition sessions into live and stale
-  const liveSessions = [];
-  const staleSessions = [];
+function renderSidebar() {
+  const list = document.getElementById("sessionList");
+  list.innerHTML = "";
 
-  for (const s of state.sessions) {
-    if (isStale(s)) {
-      staleSessions.push(s);
-    } else {
-      liveSessions.push(s);
-    }
-  }
-
-  // Show/hide stale rail
-  if (staleSessions.length > 0) {
-    staleRail.classList.remove("hidden");
-  } else {
-    staleRail.classList.add("hidden");
-  }
-
-  // ── Render stale rail ──
-  staleList.innerHTML = "";
-  staleSessions.forEach(s => {
-    const card = document.createElement("div");
-    card.className = "stale-card";
-    const dotClass = s.status === "live" ? "on" : "";
-    let preview = "";
-    if (s.local && s.output) {
-      const lines = s.output.trim().split("\n").filter(l => l.trim());
-      preview = lines[lines.length - 1] || "";
-    } else if (s.messages && s.messages.length > 0) {
-      const last = s.messages[s.messages.length - 1];
-      preview = last.content.slice(0, 50);
-    } else {
-      preview = "Idle";
-    }
-
-    card.innerHTML = `
-      <div class="stale-card__top">
-        <div class="stale-card__dot ${dotClass}"></div>
-        <div class="stale-card__name">${esc(s.name)}</div>
+  state.sessions.forEach(s => {
+    const el = document.createElement("div");
+    el.className = "sb-item" + (openPanels.includes(s.id) ? " open" : "");
+    const dc = dotClass(s);
+    el.innerHTML = `
+      <div class="sb-item__dot ${dc}"></div>
+      <div class="sb-item__info">
+        <div class="sb-item__name">${esc(s.name)}</div>
+        ${s.desc ? `<div class="sb-item__desc">${esc(s.desc)}</div>` : ""}
       </div>
-      <div class="stale-card__preview">${esc(preview)}</div>
     `;
-    card.onclick = () => {
-      pinnedLive.add(s.id);
-      staleCounters[s.id] = 0;
-      render();
-    };
-    staleList.appendChild(card);
+    el.onclick = () => togglePanel(s.id);
+    list.appendChild(el);
   });
+}
 
-  // ── Render live panels ──
-  if (liveSessions.length === 0) {
-    liveArea.className = "live-area empty-state";
-    liveArea.innerHTML = `<div><h2>All sessions idle</h2><p>Click a session in the Idle rail to bring it into view, or send a command to wake one up.</p></div>`;
-    return;
+function togglePanel(sid) {
+  const idx = openPanels.indexOf(sid);
+  if (idx >= 0) {
+    openPanels.splice(idx, 1);
+  } else {
+    if (openPanels.length >= 3) openPanels.shift();
+    openPanels.push(sid);
   }
+  renderAll();
+}
 
-  liveArea.className = "live-area";
+function renderPanels() {
+  const container = document.getElementById("panels");
+  const empty = document.getElementById("emptyState");
 
-  // Incremental update: only rebuild panels if the set of live sessions changed
-  const currentPanelIds = Array.from(liveArea.querySelectorAll(".panel")).map(p => p.dataset.sid);
-  const newIds = liveSessions.map(s => s.id);
-  const sameSet = currentPanelIds.length === newIds.length && currentPanelIds.every((id, i) => id === newIds[i]);
+  if (openPanels.length === 0) {
+    container.style.display = "none"; empty.style.display = ""; return;
+  }
+  empty.style.display = "none"; container.style.display = "";
 
-  if (sameSet) {
-    // Just update content in-place
-    for (const s of liveSessions) {
-      updatePanelContent(s);
+  // Check if panel set changed
+  const cur = Array.from(container.querySelectorAll(".panel")).map(p => p.dataset.sid);
+  const same = cur.length === openPanels.length && cur.every((id, i) => id === openPanels[i]);
+
+  if (same) {
+    // In-place update
+    for (const sid of openPanels) {
+      const s = state.sessions.find(x => x.id === sid);
+      if (s) updatePanelInPlace(s);
     }
     return;
   }
 
   // Full rebuild
-  liveArea.innerHTML = "";
-  liveSessions.forEach(s => {
+  container.innerHTML = "";
+  openPanels.forEach(sid => {
+    const s = state.sessions.find(x => x.id === sid);
+    if (!s) return;
     const panel = document.createElement("div");
-    panel.className = "panel";
-    panel.dataset.sid = s.id;
+    panel.className = "panel"; panel.dataset.sid = sid;
     buildPanel(panel, s);
-    liveArea.appendChild(panel);
+    container.appendChild(panel);
   });
 }
 
-function buildPanel(panel, session) {
-  const dotClass = session.status === "live" ? "live" : session.status === "waiting" ? "waiting" : "";
+function buildPanel(panel, s) {
+  const dc = s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "";
 
-  if (session.local) {
+  if (s.local) {
     panel.innerHTML = `
       <div class="panel__header">
-        <div class="panel__dot ${dotClass}"></div>
-        <div class="panel__name">${esc(session.name)}</div>
-        <div class="panel__desc">${esc(session.desc)}</div>
-        <button class="panel__btn minimize" title="Send to idle rail" data-action="minimize">_</button>
+        <div class="panel__dot ${dc}"></div>
+        <div class="panel__name">${esc(s.name)}</div>
+        <div class="panel__desc">${esc(s.desc)}</div>
         <button class="panel__btn stop" title="Ctrl-C" data-action="stop">&#9632;</button>
+        <button class="panel__btn" title="Close" data-action="close">&times;</button>
       </div>
-      <div class="panel__terminal" id="term-${session.id}">
-        ${session.output ? colorize(session.output) : '<span style="color:rgba(255,255,255,0.2);font-style:italic">No output yet</span>'}
-      </div>
+      <div class="panel__terminal" id="term-${s.id}">${s.output ? colorize(s.output) : '<span style="color:rgba(255,255,255,0.2)">No output yet</span>'}</div>
       <div class="panel__input">
-        <input type="text" placeholder="Send to ${esc(session.name)}..." data-session="${session.id}" />
-        <button class="send-btn" data-session="${session.id}">&#9654;</button>
+        <input type="text" placeholder="Send to ${esc(s.name)}..." />
+        <button class="send-btn">&#9654;</button>
       </div>
     `;
-    const termEl = panel.querySelector(".panel__terminal");
-    termEl.scrollTop = termEl.scrollHeight;
-    panel.querySelector('[data-action="minimize"]').onclick = () => {
-      pinnedLive.delete(session.id);
-      staleCounters[session.id] = STALE_THRESHOLD;
-      render();
-    };
-    panel.querySelector('[data-action="stop"]').onclick = () => localStopProject(session.id);
+    panel.querySelector(".panel__terminal").scrollTop = 99999;
+    panel.querySelector('[data-action="close"]').onclick = () => togglePanel(s.id);
+    panel.querySelector('[data-action="stop"]').onclick = () => localStopProject(s.id);
     const input = panel.querySelector("input[type='text']");
-    const sendBtn = panel.querySelector(".send-btn");
-    const doSend = () => {
-      const msg = input.value.trim(); if (!msg) return;
-      input.value = ""; localDispatch(session.id, msg);
-    };
-    sendBtn.onclick = doSend;
+    const send = panel.querySelector(".send-btn");
+    const doSend = () => { const m = input.value.trim(); if (!m) return; input.value = ""; localDispatch(s.id, m); };
+    send.onclick = doSend;
     input.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
   } else {
     panel.innerHTML = `
       <div class="panel__header">
-        <div class="panel__dot ${dotClass}"></div>
-        <div class="panel__name">${esc(session.name)}</div>
-        <div class="panel__desc">${esc(session.desc)}</div>
-        <button class="panel__btn minimize" title="Send to idle" data-action="minimize">_</button>
+        <div class="panel__dot ${dc}"></div>
+        <div class="panel__name">${esc(s.name)}</div>
+        <div class="panel__desc">${esc(s.desc)}</div>
+        <button class="panel__btn" title="Close" data-action="close">&times;</button>
       </div>
-      <div class="panel__messages" id="msgs-${session.id}">
-        ${session.messages.length === 0 ? '<div class="msg system">Start a conversation.</div>' : ""}
-        ${(session.messages || []).map(m => `<div class="msg ${m.role}">${esc(m.content)}</div>`).join("")}
+      <div class="panel__messages" id="msgs-${s.id}">
+        ${s.messages.length === 0 ? '<div class="msg system">Start a conversation.</div>' : ""}
+        ${(s.messages || []).map(m => `<div class="msg ${m.role}">${esc(m.content)}</div>`).join("")}
       </div>
       <div class="panel__input">
-        <button class="mic-btn" title="Voice" data-session="${session.id}">&#127908;</button>
-        <textarea rows="1" placeholder="Message ${esc(session.name)}..." data-session="${session.id}"></textarea>
-        <button class="send-btn" data-session="${session.id}" ${session.status === "waiting" ? "disabled" : ""}>&#9654;</button>
+        <button class="mic-btn" title="Voice">&#127908;</button>
+        <textarea rows="1" placeholder="Message ${esc(s.name)}..."></textarea>
+        <button class="send-btn" ${s.status === "waiting" ? "disabled" : ""}>&#9654;</button>
       </div>
     `;
-    const msgsEl = panel.querySelector(".panel__messages");
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-    panel.querySelector('[data-action="minimize"]').onclick = () => {
-      pinnedLive.delete(session.id);
-      staleCounters[session.id] = STALE_THRESHOLD;
-      render();
-    };
-    const textarea = panel.querySelector("textarea");
-    const sendBtn = panel.querySelector(".send-btn");
-    const doSend = () => {
-      const t = textarea.value.trim(); if (!t || session.status === "waiting") return;
-      textarea.value = ""; textarea.style.height = "auto";
-      cloudSend(session.id, t);
-    };
-    sendBtn.onclick = doSend;
-    textarea.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } };
-    textarea.oninput = () => { textarea.style.height = "auto"; textarea.style.height = Math.min(textarea.scrollHeight, 100) + "px"; };
-    const micBtn = panel.querySelector(".mic-btn");
-    if (micBtn) micBtn.onclick = () => startVoiceInput(session.id, micBtn, textarea);
+    panel.querySelector(".panel__messages").scrollTop = 99999;
+    panel.querySelector('[data-action="close"]').onclick = () => togglePanel(s.id);
+    const ta = panel.querySelector("textarea");
+    const send = panel.querySelector(".send-btn");
+    const doSend = () => { const t = ta.value.trim(); if (!t || s.status === "waiting") return; ta.value = ""; ta.style.height = "auto"; cloudSend(s.id, t); };
+    send.onclick = doSend;
+    ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } };
+    ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 100) + "px"; };
+    const mic = panel.querySelector(".mic-btn");
+    if (mic) mic.onclick = () => startVoiceInput(s.id, mic, ta);
   }
 }
 
-function updatePanelContent(session) {
-  // Update terminal output (local) or dot status without full rebuild
-  const termEl = document.getElementById("term-" + session.id);
-  if (termEl && session.output) {
-    const wasAtBottom = termEl.scrollTop + termEl.clientHeight >= termEl.scrollHeight - 20;
-    termEl.innerHTML = colorize(session.output);
-    if (wasAtBottom) termEl.scrollTop = termEl.scrollHeight;
+function updatePanelInPlace(s) {
+  const term = document.getElementById("term-" + s.id);
+  if (term && s.output) {
+    const atBottom = term.scrollTop + term.clientHeight >= term.scrollHeight - 20;
+    term.innerHTML = colorize(s.output);
+    if (atBottom) term.scrollTop = term.scrollHeight;
   }
-  const panel = document.querySelector(`.panel[data-sid="${session.id}"]`);
+  const panel = document.querySelector(`.panel[data-sid="${s.id}"]`);
   if (panel) {
     const dot = panel.querySelector(".panel__dot");
-    if (dot) {
-      const dotClass = session.status === "live" ? "live" : session.status === "waiting" ? "waiting" : "";
-      dot.className = "panel__dot " + dotClass;
-    }
+    if (dot) dot.className = "panel__dot " + (s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "");
   }
 }
 
 // ── Voice ──
 let currentRecognition = null;
-function startVoiceInput(sessionId, micBtn, textarea) {
-  if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-    toast("Voice not supported in this browser"); return;
-  }
-  if (currentRecognition) { currentRecognition.stop(); currentRecognition = null; micBtn.classList.remove("recording"); return; }
+function startVoiceInput(sid, btn, ta) {
+  if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) { toast("Voice not supported"); return; }
+  if (currentRecognition) { currentRecognition.stop(); currentRecognition = null; btn.classList.remove("recording"); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const r = new SR(); r.continuous = false; r.interimResults = true; r.lang = "en-US";
-  currentRecognition = r; micBtn.classList.add("recording");
-  r.onresult = (e) => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; textarea.value = t; };
-  r.onend = () => { currentRecognition = null; micBtn.classList.remove("recording"); };
-  r.onerror = () => { currentRecognition = null; micBtn.classList.remove("recording"); };
+  currentRecognition = r; btn.classList.add("recording");
+  r.onresult = (e) => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; ta.value = t; };
+  r.onend = () => { currentRecognition = null; btn.classList.remove("recording"); };
+  r.onerror = () => { currentRecognition = null; btn.classList.remove("recording"); };
   r.start();
 }
 
-// ── Session CRUD (cloud) ──
-document.getElementById("addBtn").onclick = () => {
+// ── New Session ──
+document.getElementById("newSessionBtn").onclick = () => {
   document.getElementById("addModal").classList.remove("hidden");
   document.getElementById("newName").value = "";
+  document.getElementById("newPath").value = "";
   document.getElementById("newDesc").value = "";
   document.getElementById("newSystem").value = "";
   setTimeout(() => document.getElementById("newName").focus(), 100);
@@ -893,16 +771,28 @@ document.getElementById("addCancel").onclick = () => document.getElementById("ad
 document.getElementById("addCreate").onclick = () => {
   const name = document.getElementById("newName").value.trim();
   if (!name) { document.getElementById("newName").focus(); return; }
-  const s = createSession(name, document.getElementById("newDesc").value.trim(), document.getElementById("newSystem").value.trim());
+  const desc = document.getElementById("newDesc").value.trim();
+  const path = document.getElementById("newPath").value.trim();
+  const sys = document.getElementById("newSystem").value.trim();
+
+  if (MODE === "local" && path) {
+    // TODO: call API to add project to projects.yaml + create tmux window
+    toast("Local project creation coming soon — add to projects.yaml manually for now");
+    document.getElementById("addModal").classList.add("hidden");
+    return;
+  }
+
+  const s = createSession(name, desc, sys);
   state.sessions.push(s); saveState();
   document.getElementById("addModal").classList.add("hidden");
-  pinnedLive.add(s.id);
-  render();
+  openPanels.push(s.id);
+  if (openPanels.length > 3) openPanels.shift();
+  renderAll();
   toast("Session '" + name + "' created");
 };
 document.getElementById("newName").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("addCreate").click(); };
 
-// ── Onboarding (cloud) ──
+// ── Onboarding ──
 document.getElementById("apiKeySave").onclick = async () => {
   const key = document.getElementById("apiKeyInput").value.trim();
   const err = document.getElementById("apiKeyErr");
@@ -910,14 +800,12 @@ document.getElementById("apiKeySave").onclick = async () => {
   err.textContent = "Validating...";
   try {
     const r = await callClaude(key, [{ role: "user", content: "Say hi" }], null, false);
-    if (r.error) { err.textContent = "Invalid key: " + (typeof r.error === "string" ? r.error : JSON.stringify(r.error)); return; }
+    if (r.error) { err.textContent = "Invalid: " + (typeof r.error === "string" ? r.error : JSON.stringify(r.error)); return; }
     setApiKey(key);
     document.getElementById("onboarding").classList.add("hidden");
-    document.getElementById("topbar").classList.remove("hidden");
-    document.getElementById("workspace").classList.remove("hidden");
-    render();
-    toast("Welcome to Voz!");
-  } catch (e) { err.textContent = "Connection error: " + e.message; }
+    document.getElementById("app").classList.remove("hidden");
+    renderAll(); toast("Welcome to Voz!");
+  } catch (e) { err.textContent = "Error: " + e.message; }
 };
 document.getElementById("apiKeyInput").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("apiKeySave").click(); };
 
@@ -937,21 +825,13 @@ document.getElementById("settingsSave").onclick = () => {
 };
 
 // ── Modals ──
-document.onkeydown = (e) => {
-  if (e.key === "Escape") {
-    document.getElementById("addModal").classList.add("hidden");
-    document.getElementById("settingsModal").classList.add("hidden");
-  }
-};
+document.onkeydown = (e) => { if (e.key === "Escape") { document.getElementById("addModal").classList.add("hidden"); document.getElementById("settingsModal").classList.add("hidden"); } };
 document.getElementById("addModal").onclick = (e) => { if (e.target.id === "addModal") e.target.classList.add("hidden"); };
 document.getElementById("settingsModal").onclick = (e) => { if (e.target.id === "settingsModal") e.target.classList.add("hidden"); };
 
 // ── Helpers ──
-function esc(str) { const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
-function toast(msg) {
-  const t = document.getElementById("toast"); t.textContent = msg;
-  t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3000);
-}
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3000); }
 
 // ── Boot ──
 init();
