@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Voz</title>
   <style>
 :root {
-  --bg: #070b16;
+  --bg: #060a12;
   --panel: #0c1226;
-  --panel-2: #0a0f20;
   --surface: #111a33;
   --text: #e4e8f7;
   --muted: rgba(228, 232, 247, 0.55);
@@ -17,406 +16,307 @@
   --accent-glow: rgba(124, 92, 255, 0.35);
   --accent-2: #2fe6c5;
   --border: rgba(255, 255, 255, 0.06);
-  --shadow: 0 12px 40px rgba(0,0,0,0.5);
-  --radius: 14px;
-  --transition: 220ms cubic-bezier(.2,.8,.2,1);
   --font: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
   --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
   --green: #34d399;
   --red: #f87171;
   --yellow: #fbbf24;
   --blue: #60a5fa;
-  --terminal-bg: #050a14;
-  --agent-w: 260px;
+  --transition: 220ms cubic-bezier(.2,.8,.2,1);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--text); font-family: var(--font); }
 
-/* ─── Onboarding (cloud mode) ─── */
+/* ─── Onboarding ─── */
 .onboarding { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; }
 .onboarding.hidden { display: none; }
-.onboarding__card { max-width: 440px; width: 100%; padding: 48px 36px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); text-align: center; }
-.onboarding__orb { width: 72px; height: 72px; margin: 0 auto 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--accent), #1a0a40); box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(124,92,255,0.15); }
-.onboarding h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.onboarding__card { max-width: 400px; width: 100%; padding: 40px 32px; background: var(--panel); border: 1px solid var(--border); border-radius: 20px; text-align: center; }
+.onboarding__orb { width: 72px; height: 72px; margin: 0 auto 20px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--accent), #1a0a40); box-shadow: 0 0 40px var(--accent-glow); }
+.onboarding h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .onboarding p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
 .onboarding__input { display: flex; gap: 8px; }
-.onboarding__input input { flex: 1; padding: 12px 16px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; }
+.onboarding__input input { flex: 1; padding: 12px 16px; background: #050a14; border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; }
 .onboarding__input input:focus { border-color: var(--accent); }
-.onboarding__input button { padding: 12px 24px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); color: white; font-weight: 700; font-size: 14px; cursor: pointer; }
-.onboarding__err { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
-.onboarding__hint { margin-top: 20px; font-size: 11px; color: var(--muted); opacity: 0.6; line-height: 1.5; }
+.onboarding__input button { padding: 12px 24px; border: none; border-radius: 12px; background: var(--accent); color: white; font-weight: 700; cursor: pointer; }
+.onboarding__err { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 18px; }
 
-/* ─── App shell ─── */
-.app { display: flex; height: 100vh; }
+/* ─── Voice-first layout ─── */
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 .app.hidden { display: none; }
 
-/* ─── Voz main area ─── */
-.voz { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+/* ─── Center stage: the orb ─── */
+.stage {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative; min-height: 0;
+  padding: 20px;
+}
 
-/* hero bar */
-.voz__hero {
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 24px;
-  background: linear-gradient(180deg, rgba(124,92,255,0.06) 0%, transparent 100%);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.voz__orb-wrap { position: relative; width: 44px; height: 44px; flex-shrink: 0; }
-.voz__orb {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, var(--accent), #1a0a40 70%);
-  box-shadow: 0 0 20px var(--accent-glow), 0 0 50px rgba(124,92,255,0.12);
+/* Orb */
+.orb-area { position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.orb {
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--accent), #0d0520 72%);
+  box-shadow:
+    0 0 60px var(--accent-glow),
+    0 0 120px rgba(124,92,255,0.1),
+    inset 0 -20px 40px rgba(0,0,0,0.3);
   transition: all 0.6s ease;
+  position: relative; z-index: 2;
 }
-.voz__orb-ring {
-  position: absolute; inset: -4px; border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: var(--accent);
-  opacity: 0; transition: opacity 0.4s;
+.orb-ring {
+  position: absolute; inset: -10px; border-radius: 50%;
+  border: 2.5px solid transparent; border-top-color: var(--accent);
+  opacity: 0; transition: opacity 0.4s; z-index: 1;
 }
-.voz--working .voz__orb { box-shadow: 0 0 30px rgba(251,191,36,0.35), 0 0 60px rgba(251,191,36,0.12); background: radial-gradient(circle at 38% 32%, var(--yellow), #2a1a00 70%); }
-.voz--working .voz__orb-ring { opacity: 1; border-top-color: var(--yellow); animation: orb-spin 1.2s linear infinite; }
-.voz--asking .voz__orb { box-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(124,92,255,0.2); }
-.voz--asking .voz__orb-ring { opacity: 1; animation: orb-pulse 2s ease infinite; }
+.orb-ripple {
+  position: absolute; inset: -20px; border-radius: 50%;
+  border: 1px solid rgba(124,92,255,0.15);
+  opacity: 0; z-index: 0;
+}
+
+/* Orb states */
+.stage--idle .orb { box-shadow: 0 0 40px rgba(124,92,255,0.15), inset 0 -20px 40px rgba(0,0,0,0.3); }
+
+.stage--listening .orb {
+  background: radial-gradient(circle at 38% 32%, var(--red), #200808 72%);
+  box-shadow: 0 0 80px rgba(248,113,113,0.3), 0 0 160px rgba(248,113,113,0.1), inset 0 -20px 40px rgba(0,0,0,0.3);
+}
+.stage--listening .orb-ring { opacity: 1; border-top-color: var(--red); animation: orb-pulse 1s ease infinite; }
+.stage--listening .orb-ripple { animation: ripple 2s ease-out infinite; }
+
+.stage--working .orb {
+  background: radial-gradient(circle at 38% 32%, var(--yellow), #1a1200 72%);
+  box-shadow: 0 0 60px rgba(251,191,36,0.25), 0 0 120px rgba(251,191,36,0.08), inset 0 -20px 40px rgba(0,0,0,0.3);
+}
+.stage--working .orb-ring { opacity: 1; border-top-color: var(--yellow); animation: orb-spin 1.2s linear infinite; }
+
+.stage--asking .orb {
+  box-shadow: 0 0 80px var(--accent-glow), 0 0 160px rgba(124,92,255,0.15), inset 0 -20px 40px rgba(0,0,0,0.3);
+}
+.stage--asking .orb-ring { opacity: 1; animation: orb-pulse 2s ease infinite; }
+
+.stage--speaking .orb {
+  background: radial-gradient(circle at 38% 32%, var(--accent-2), #081a14 72%);
+  box-shadow: 0 0 80px rgba(47,230,197,0.25), 0 0 160px rgba(47,230,197,0.08), inset 0 -20px 40px rgba(0,0,0,0.3);
+}
+.stage--speaking .orb-ring { opacity: 1; border-top-color: var(--accent-2); animation: orb-pulse 1.5s ease infinite; }
+.stage--speaking .orb-ripple { animation: ripple 1.5s ease-out infinite; }
+
 @keyframes orb-spin { to { transform: rotate(360deg); } }
 @keyframes orb-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
 
-.voz__identity { flex: 1; min-width: 0; }
-.voz__name {
-  font-size: 20px; font-weight: 800; letter-spacing: -0.3px;
+/* Status text below orb */
+.status {
+  margin-top: 28px; text-align: center; max-width: 500px;
+}
+.status__label {
+  font-size: 14px; color: var(--muted); font-weight: 500;
+  line-height: 1.5; min-height: 22px;
+  transition: color 0.3s;
+}
+.stage--working .status__label { color: var(--yellow); }
+.stage--asking .status__label { color: var(--accent); }
+.stage--listening .status__label { color: var(--red); }
+
+.status__hint {
+  font-size: 11px; color: var(--dim); margin-top: 8px;
+  opacity: 0.7;
+}
+
+/* Transcript bubble (shown while listening / after sending) */
+.transcript {
+  margin-top: 16px; padding: 10px 20px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 16px; font-size: 14px; color: var(--text);
+  max-width: 440px; text-align: center; min-height: 0;
+  opacity: 0; transform: translateY(8px);
+  transition: all 0.3s ease;
+}
+.transcript.visible { opacity: 1; transform: translateY(0); }
+
+/* ─── Top bar ─── */
+.topbar {
+  display: flex; align-items: center; padding: 12px 20px;
+  flex-shrink: 0; gap: 10px;
+}
+.topbar__name {
+  font-size: 16px; font-weight: 800; letter-spacing: -0.3px;
   background: linear-gradient(135deg, #fff 30%, var(--accent-2));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.voz__status { font-size: 12px; color: var(--muted); margin-top: 1px; transition: color 0.3s; }
-.voz--working .voz__status { color: var(--yellow); }
-.voz--asking .voz__status { color: var(--accent); }
-
-.voz__meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.voz__badge {
-  font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
-  text-transform: uppercase; letter-spacing: 0.6px;
+.topbar__spacer { flex: 1; }
+.topbar__btn {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; color: var(--dim); font-size: 14px; cursor: pointer;
+  display: grid; place-items: center; transition: all var(--transition);
+  font-family: var(--font); position: relative;
 }
-.voz__badge.local { background: rgba(52,211,153,0.12); color: var(--green); }
-.voz__badge.cloud { background: rgba(124,92,255,0.12); color: var(--accent); }
-.voz__autopilot {
-  display: flex; align-items: center; gap: 6px; cursor: pointer;
-  padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
-  background: transparent; font-family: var(--font); font-size: 10px;
-  font-weight: 600; color: var(--dim); transition: all var(--transition);
+.topbar__btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.topbar__btn.spinning { animation: orb-spin 0.8s linear infinite; color: var(--yellow); }
+.topbar__badge {
+  font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
   text-transform: uppercase; letter-spacing: 0.5px;
 }
-.voz__autopilot:hover { background: rgba(255,255,255,0.04); color: var(--muted); }
-.voz__autopilot.on { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.25); color: var(--green); }
-.voz__autopilot-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--dim); transition: all 0.3s;
-}
-.voz__autopilot.on .voz__autopilot-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.topbar__badge.local { background: rgba(52,211,153,0.12); color: var(--green); }
+.topbar__badge.cloud { background: rgba(124,92,255,0.12); color: var(--accent); }
 
-/* away banner */
-.voz__away {
-  padding: 6px 20px; background: rgba(251,191,36,0.06);
-  border-bottom: 1px solid rgba(251,191,36,0.1);
-  font-size: 11px; color: var(--yellow); display: none;
-  align-items: center; gap: 8px;
+/* ─── Agent pills (bottom of stage) ─── */
+.agent-pills {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  justify-content: center; margin-top: 24px;
+  max-width: 500px;
 }
-.voz__away.show { display: flex; }
-.voz__away-text { flex: 1; }
-.voz__away-log { font-size: 10px; color: var(--muted); cursor: pointer; text-decoration: underline; }
-
-/* terminal */
-.voz__terminal {
-  flex: 1; overflow-y: auto; padding: 12px 20px;
-  background: var(--terminal-bg);
-  font-family: var(--mono); font-size: 12.5px;
-  line-height: 1.55; color: #94a3b8;
-  white-space: pre-wrap; word-break: break-all;
-}
-.voz__terminal::-webkit-scrollbar { width: 5px; }
-.voz__terminal::-webkit-scrollbar-thumb { background: rgba(124,92,255,0.2); border-radius: 3px; }
-.voz__terminal .ln-prompt { color: var(--accent-2); }
-.voz__terminal .ln-error { color: var(--red); }
-.voz__terminal .ln-info { color: var(--blue); }
-
-/* input */
-.voz__input {
-  padding: 12px 20px; border-top: 1px solid var(--border);
-  background: rgba(0,0,0,0.15);
-  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
-}
-.voz__input input {
-  flex: 1; padding: 10px 16px;
-  background: var(--terminal-bg); border: 1px solid var(--border);
-  border-radius: 10px; color: var(--text);
-  font-family: var(--mono); font-size: 13px;
-  outline: none; height: 42px;
-}
-.voz__input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,255,0.1); }
-.voz__input input::placeholder { color: var(--dim); }
-.voz__input .send-btn {
-  width: 42px; height: 42px; border: none; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.6));
-  color: white; font-size: 16px; cursor: pointer;
-  display: grid; place-items: center;
-  transition: all var(--transition); flex-shrink: 0;
-}
-.voz__input .send-btn:hover { box-shadow: 0 4px 20px var(--accent-glow); transform: translateY(-1px); }
-
-/* ─── Agent sidebar (right) ─── */
-.agents {
-  width: var(--agent-w); min-width: var(--agent-w); flex-shrink: 0;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-.agents__header {
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px;
-}
-.agents__title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); flex: 1; }
-.agents__count {
-  font-size: 10px; font-weight: 700; color: var(--dim);
-  background: rgba(255,255,255,0.04); padding: 2px 7px; border-radius: 4px;
-}
-.agents__list { flex: 1; overflow-y: auto; padding: 6px 8px; }
-.agents__list::-webkit-scrollbar { width: 3px; }
-.agents__list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
-
-/* agent card */
-.agent {
-  padding: 10px; border-radius: 10px; margin-bottom: 4px;
+.agent-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  font-size: 10px; font-weight: 600; color: var(--muted);
   cursor: pointer; transition: all var(--transition);
-  border: 1px solid transparent;
-  position: relative;
-}
-.agent:hover { background: rgba(255,255,255,0.03); }
-.agent.expanded { background: rgba(124,92,255,0.08); border-color: var(--accent-glow); }
-.agent__row { display: flex; align-items: center; gap: 8px; }
-.agent__dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  background: var(--dim);
-}
-.agent__dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.agent__dot.working { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse-dot 1.5s infinite; }
-.agent__dot.asking { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse-dot 2s infinite; }
-.agent__dot.stale { background: var(--dim); }
-@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-.agent__name { font-weight: 700; font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.agent__state-tag {
-  font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
-  text-transform: uppercase; letter-spacing: 0.3px;
   white-space: nowrap;
 }
-.agent__state-tag.ready { background: rgba(255,255,255,0.04); color: var(--dim); }
-.agent__state-tag.idle { background: rgba(52,211,153,0.1); color: var(--green); }
-.agent__state-tag.working { background: rgba(251,191,36,0.1); color: var(--yellow); }
-.agent__state-tag.asking { background: rgba(124,92,255,0.12); color: var(--accent); }
-.agent__state-tag.shell { background: rgba(248,113,113,0.1); color: var(--red); }
-.agent__state-tag.unknown { background: rgba(255,255,255,0.04); color: var(--dim); }
-.agent__preview {
-  font-size: 10px; color: var(--muted); line-height: 1.35;
-  margin-top: 6px; padding-left: 16px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden; word-break: break-word;
+.agent-pill:hover { background: rgba(255,255,255,0.06); }
+.agent-pill__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--dim); flex-shrink: 0;
 }
+.agent-pill__dot.working { background: var(--yellow); box-shadow: 0 0 4px var(--yellow); }
+.agent-pill__dot.asking { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
+.agent-pill__dot.live { background: var(--green); }
+.agent-pill__dot.stale { background: var(--dim); }
 
-/* agent terminal drawer */
-.agent__drawer {
-  max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
-  margin-top: 0;
+/* ─── Bottom bar: text input (secondary) ─── */
+.bottombar {
+  padding: 10px 20px 14px; flex-shrink: 0;
+  display: flex; gap: 8px; align-items: center;
 }
-.agent.expanded .agent__drawer { max-height: 200px; margin-top: 8px; }
-.agent__term {
-  background: var(--terminal-bg); border-radius: 6px;
-  padding: 6px 8px; font-family: var(--mono); font-size: 10px;
-  line-height: 1.4; color: #6b7a94; white-space: pre-wrap;
-  word-break: break-all; max-height: 140px; overflow-y: auto;
+.bottombar input {
+  flex: 1; padding: 10px 18px; height: 42px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 21px; color: var(--text);
+  font-family: var(--font); font-size: 13px; outline: none;
 }
-.agent__term::-webkit-scrollbar { width: 2px; }
-.agent__term::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); }
-.agent__actions {
-  display: flex; gap: 4px; margin-top: 4px;
+.bottombar input:focus { border-color: var(--accent); background: rgba(255,255,255,0.05); }
+.bottombar input::placeholder { color: var(--dim); }
+.bottombar .send-btn {
+  width: 42px; height: 42px; border: none; border-radius: 21px;
+  background: var(--accent); color: white; font-size: 16px; cursor: pointer;
+  display: grid; place-items: center; transition: all var(--transition); flex-shrink: 0;
+  opacity: 0.7;
 }
-.agent__actions button {
-  flex: 1; padding: 4px; border: 1px solid var(--border); border-radius: 5px;
-  background: transparent; color: var(--muted); font-size: 9px;
-  font-family: var(--font); cursor: pointer; transition: all var(--transition);
-}
-.agent__actions button:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.bottombar .send-btn:hover { opacity: 1; }
 
-/* add agent button */
-.agents__add {
-  margin: 4px 8px 8px; padding: 8px; border-radius: 8px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-  color: var(--dim); font-size: 11px; font-weight: 600;
-  transition: all var(--transition);
-  border: 1px dashed rgba(255,255,255,0.08);
+/* ─── Terminal drawer ─── */
+.terminal-drawer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 50vh; background: #050a14;
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
+  z-index: 40; display: flex; flex-direction: column;
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.6);
 }
-.agents__add:hover { background: rgba(255,255,255,0.03); color: var(--muted); border-color: rgba(255,255,255,0.15); }
-
-/* agents footer */
-.agents__footer {
-  padding: 8px 10px; border-top: 1px solid var(--border);
-  display: flex; gap: 4px;
+.terminal-drawer.open { transform: translateY(0); }
+.terminal-drawer__handle {
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px 0 4px; cursor: pointer; flex-shrink: 0;
 }
-.agents__footer button {
-  flex: 1; padding: 5px; border: 1px solid var(--border); border-radius: 5px;
-  background: transparent; color: var(--dim); font-size: 9px; cursor: pointer;
-  font-family: var(--font); transition: all var(--transition);
+.terminal-drawer__bar {
+  width: 40px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.15);
 }
-.agents__footer button:hover { background: rgba(255,255,255,0.03); color: var(--muted); }
-
-/* tmux status */
-.agents__tmux {
-  padding: 6px 16px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10px; color: var(--dim);
+.terminal-drawer__tabs {
+  display: flex; gap: 2px; padding: 4px 12px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  overflow-x: auto;
 }
-.agents__tmux.hidden { display: none; }
-.agents__tmux-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.agents__tmux-dot.on { background: var(--green); box-shadow: 0 0 4px var(--green); }
-.agents__tmux-dot.off { background: var(--red); }
-.agents__tmux-text { flex: 1; }
-.agents__tmux button {
-  padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px;
-  background: transparent; color: var(--dim); font-size: 9px; cursor: pointer;
+.terminal-drawer__tab {
+  padding: 6px 14px; border-radius: 8px 8px 0 0;
+  font-size: 11px; font-weight: 600; color: var(--dim);
+  cursor: pointer; transition: all var(--transition);
+  white-space: nowrap; border: none; background: none;
   font-family: var(--font);
 }
-.agents__tmux button:hover { color: var(--muted); }
+.terminal-drawer__tab:hover { color: var(--muted); }
+.terminal-drawer__tab.active { color: var(--text); background: rgba(255,255,255,0.04); }
+.terminal-drawer__body {
+  flex: 1; overflow-y: auto; padding: 10px 16px;
+  font-family: var(--mono); font-size: 11.5px;
+  line-height: 1.5; color: #7a8ba4;
+  white-space: pre-wrap; word-break: break-all;
+}
+.terminal-drawer__body::-webkit-scrollbar { width: 4px; }
+.terminal-drawer__body::-webkit-scrollbar-thumb { background: rgba(124,92,255,0.15); border-radius: 2px; }
+.terminal-drawer__body .ln-prompt { color: var(--accent-2); }
+.terminal-drawer__body .ln-error { color: var(--red); }
+.terminal-drawer__body .ln-info { color: var(--blue); }
+
+/* ─── Autopilot + settings: small icons in topbar ─── */
+.topbar__ap {
+  display: flex; align-items: center; gap: 4px; cursor: pointer;
+  padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; font-family: var(--font); font-size: 9px;
+  font-weight: 700; color: var(--dim); transition: all var(--transition);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.topbar__ap:hover { background: rgba(255,255,255,0.04); }
+.topbar__ap.on { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.2); color: var(--green); }
+.topbar__ap-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--dim); transition: all 0.3s;
+}
+.topbar__ap.on .topbar__ap-dot { background: var(--green); box-shadow: 0 0 4px var(--green); }
+
+/* ─── Away banner ─── */
+.away-banner {
+  position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+  padding: 8px 20px; border-radius: 12px;
+  background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.15);
+  font-size: 12px; color: var(--yellow); z-index: 50;
+  display: none; align-items: center; gap: 8px;
+  backdrop-filter: blur(12px);
+}
+.away-banner.show { display: flex; }
+.away-banner__text { flex: 1; }
+.away-banner__dismiss {
+  font-size: 10px; color: var(--muted); cursor: pointer;
+  text-decoration: underline;
+}
 
 /* ─── Modals ─── */
-.modal-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; }
+.modal-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; }
 .modal-overlay.hidden { display: none; }
-.modal { width: 420px; padding: 28px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
-.modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-.modal label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.modal { width: 400px; padding: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; }
+.modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+.modal label { display: block; font-size: 10px; font-weight: 600; color: var(--muted); margin-bottom: 5px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 .modal label:first-of-type { margin-top: 0; }
-.modal input, .modal textarea { width: 100%; padding: 10px 14px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
-.modal input:focus, .modal textarea:focus { border-color: var(--accent); }
-.modal textarea { resize: vertical; min-height: 60px; }
-.modal textarea.sysprompt { min-height: 100px; font-family: var(--mono); font-size: 12px; }
-.modal__btns { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
-.modal__btns button { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); font-family: var(--font); }
+.modal input { width: 100%; padding: 10px 14px; background: #050a14; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
+.modal input:focus { border-color: var(--accent); }
+.modal__btns { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
+.modal__btns button { padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); font-family: var(--font); }
 .modal__btns .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-.modal__btns .create-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); border: none; color: white; }
-
-/* restart button */
-.voz__restart-btn {
-  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px;
-  background: transparent; color: var(--dim); font-size: 16px; cursor: pointer;
-  display: grid; place-items: center; transition: all var(--transition);
-  font-family: var(--font);
-}
-.voz__restart-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: rgba(255,255,255,0.15); }
-.voz__restart-btn.spinning { animation: orb-spin 0.8s linear infinite; color: var(--yellow); border-color: rgba(251,191,36,0.3); }
-
-/* mic button */
-.voz__input .mic-btn {
-  width: 42px; height: 42px; border: 1px solid var(--border); border-radius: 10px;
-  background: transparent; color: var(--dim); font-size: 18px; cursor: pointer;
-  display: grid; place-items: center; transition: all var(--transition); flex-shrink: 0;
-}
-.voz__input .mic-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
-.voz__input .mic-btn.recording {
-  background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.4);
-  color: var(--red); animation: pulse-mic 1.5s ease infinite;
-}
-@keyframes pulse-mic { 0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); } 50% { box-shadow: 0 0 0 8px rgba(248,113,113,0.15); } }
-
-/* voice recording state for orb */
-.voz--recording .voz__orb {
-  box-shadow: 0 0 30px rgba(248,113,113,0.35), 0 0 60px rgba(248,113,113,0.12);
-  background: radial-gradient(circle at 38% 32%, var(--red), #2a0a0a 70%);
-}
-.voz--recording .voz__orb-ring { opacity: 1; border-top-color: var(--red); animation: orb-pulse 1s ease infinite; }
+.modal__btns .save-btn { background: var(--accent); border: none; color: white; }
 
 /* Toast */
-.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 200; padding: 10px 24px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; box-shadow: var(--shadow); opacity: 0; transition: all 300ms ease; white-space: nowrap; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 200; padding: 10px 24px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; opacity: 0; transition: all 300ms ease; white-space: nowrap; }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-/* ─── Mobile bottom sheet handle ─── */
-.mobile-agents-handle {
-  display: none;
-}
-
-/* ─── Mobile layout ─── */
-@media (max-width: 768px) {
-  :root { --agent-w: 100%; }
-
-  .app { flex-direction: column; height: 100vh; height: 100dvh; }
-
-  /* Voz takes most of the screen */
-  .voz { flex: 1; min-height: 0; }
-
-  /* hero — bigger orb, centered */
-  .voz__hero {
-    flex-direction: column; align-items: center; text-align: center;
-    padding: 20px 16px 12px; gap: 10px;
-  }
-  .voz__orb-wrap { width: 72px; height: 72px; }
-  .voz__orb { width: 72px; height: 72px; }
-  .voz__orb-ring { inset: -6px; border-width: 2.5px; }
-  .voz__identity { text-align: center; }
-  .voz__name { font-size: 24px; }
-  .voz__status { font-size: 13px; margin-top: 4px; }
-  .voz__meta { justify-content: center; gap: 8px; }
-
-  /* terminal — smaller on mobile */
-  .voz__terminal { padding: 10px 14px; font-size: 11px; flex: 1; min-height: 80px; }
-
-  /* input bar — sticky bottom feel */
-  .voz__input { padding: 10px 12px; gap: 6px; }
-  .voz__input input { height: 44px; font-size: 14px; border-radius: 22px; padding: 10px 18px; }
-  .voz__input .send-btn { width: 44px; height: 44px; border-radius: 22px; font-size: 18px; }
-  .voz__input .mic-btn { width: 44px; height: 44px; border-radius: 22px; font-size: 20px; }
-
-  /* Agents sidebar becomes a bottom sheet */
-  .agents {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    width: 100%; min-width: 100%;
-    height: 70vh; max-height: 70vh;
-    border-left: none; border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    transform: translateY(calc(100% - 40px));
-    transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
-    z-index: 30;
-    box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
-  }
-  .agents.sheet-open { transform: translateY(0); }
-
-  /* Pull handle */
-  .mobile-agents-handle {
-    display: flex; align-items: center; justify-content: center;
-    padding: 10px 0 6px; cursor: pointer;
-    flex-shrink: 0;
-  }
-  .mobile-agents-handle__bar {
-    width: 40px; height: 4px; border-radius: 2px;
-    background: rgba(255,255,255,0.15);
-  }
-  .mobile-agents-handle__peek {
-    position: absolute; top: 10px; right: 16px;
-    font-size: 10px; color: var(--muted); font-weight: 600;
-  }
-
-  .agents__header { padding: 8px 16px; }
-  .agents__list { padding: 6px 10px; }
-
-  /* away banner */
-  .voz__away { font-size: 10px; padding: 5px 14px; }
-
-  /* Toast repositioned above the bottom sheet handle */
-  .toast { bottom: 56px; }
-
-  /* Modals */
-  .modal { width: calc(100vw - 32px); max-width: 420px; padding: 20px; }
-
-  /* Onboarding */
-  .onboarding__card { padding: 32px 20px; margin: 0 16px; }
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .orb { width: 120px; height: 120px; }
+  .orb-ring { inset: -8px; }
+  .orb-ripple { inset: -16px; }
+  .status__label { font-size: 13px; }
+  .topbar { padding: 10px 14px; }
+  .bottombar { padding: 8px 14px 12px; }
+  .terminal-drawer { height: 60vh; }
 }
   </style>
 </head>
@@ -433,104 +333,76 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
       <button id="apiKeySave">Connect</button>
     </div>
     <div class="onboarding__err" id="apiKeyErr"></div>
-    <div class="onboarding__hint">Stored locally. <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">Get a key</a></div>
   </div>
 </div>
 
 <!-- App -->
 <div class="app hidden" id="app">
-  <!-- Voz main -->
-  <div class="voz" id="vozMain">
-    <div class="voz__hero">
-      <div class="voz__orb-wrap">
-        <div class="voz__orb" id="vozOrb"></div>
-        <div class="voz__orb-ring" id="vozRing"></div>
-      </div>
-      <div class="voz__identity">
-        <div class="voz__name">Voz</div>
-        <div class="voz__status" id="vozStatus">Initializing...</div>
-      </div>
-      <div class="voz__meta">
-        <button class="voz__autopilot" id="autopilotBtn" title="Auto-pilot: handle agent questions when you're away">
-          <div class="voz__autopilot-dot"></div>
-          <span>Auto-pilot</span>
-        </button>
-        <button class="voz__restart-btn" id="restartBtn" title="Restart Voz (picks up new MCP servers)">&#8635;</button>
-        <div class="voz__badge" id="modeBadge"></div>
-      </div>
-    </div>
-    <div class="voz__away" id="awayBanner">
-      <span>&#9889;</span>
-      <span class="voz__away-text" id="awayText">Auto-pilot handled 0 actions while you were away</span>
-      <span class="voz__away-log" id="awayDismiss">dismiss</span>
-    </div>
-    <div class="voz__terminal" id="vozTerminal"><span style="color:var(--dim)">Connecting...</span></div>
-    <div class="voz__input">
-      <button class="mic-btn" id="micBtn" title="Hold to talk (or click to toggle)">&#127908;</button>
-      <input type="text" id="vozInput" placeholder="Talk to Voz..." />
-      <button class="send-btn" id="vozSend">&#9654;</button>
-    </div>
+  <!-- Top bar — minimal -->
+  <div class="topbar">
+    <div class="topbar__name">Voz</div>
+    <div class="topbar__spacer"></div>
+    <button class="topbar__ap" id="autopilotBtn" title="Auto-pilot">
+      <div class="topbar__ap-dot"></div>
+      <span>AP</span>
+    </button>
+    <button class="topbar__btn" id="terminalBtn" title="Show terminal">&#9776;</button>
+    <button class="topbar__btn" id="restartBtn" title="Restart Voz">&#8635;</button>
+    <button class="topbar__btn" id="settingsBtn" title="Settings">&#9881;</button>
+    <div class="topbar__badge" id="modeBadge"></div>
   </div>
 
-  <!-- Agents sidebar / mobile bottom sheet -->
-  <aside class="agents" id="agentsSidebar">
-    <div class="mobile-agents-handle" id="sheetHandle">
-      <div class="mobile-agents-handle__bar"></div>
-      <div class="mobile-agents-handle__peek" id="sheetPeek">0 agents</div>
+  <!-- Away banner -->
+  <div class="away-banner" id="awayBanner">
+    <span class="away-banner__text" id="awayText"></span>
+    <span class="away-banner__dismiss" id="awayDismiss">dismiss</span>
+  </div>
+
+  <!-- Center stage -->
+  <div class="stage" id="stage">
+    <div class="orb-area" id="orbArea">
+      <div class="orb" id="orb"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-ripple"></div>
     </div>
-    <div class="agents__header">
-      <div class="agents__title">Agents</div>
-      <div class="agents__count" id="agentCount">0</div>
+    <div class="status">
+      <div class="status__label" id="statusLabel">Initializing...</div>
+      <div class="status__hint" id="statusHint">Tap the orb to talk</div>
     </div>
-    <div class="agents__tmux hidden" id="tmuxBar">
-      <div class="agents__tmux-dot off" id="tmuxDot"></div>
-      <div class="agents__tmux-text" id="tmuxText">tmux</div>
-      <button onclick="localStart()">Start</button>
-      <button onclick="localStop()">Stop</button>
-    </div>
-    <div class="agents__list" id="agentList"></div>
-    <div class="agents__add" id="addAgentBtn">
-      <span>+</span> <span>New Agent</span>
-    </div>
-    <div class="agents__footer">
-      <button id="settingsBtn">Settings</button>
-    </div>
-  </aside>
+    <div class="transcript" id="transcript"></div>
+    <div class="agent-pills" id="agentPills"></div>
+  </div>
+
+  <!-- Bottom text input -->
+  <div class="bottombar">
+    <input type="text" id="textInput" placeholder="or type here..." />
+    <button class="send-btn" id="sendBtn">&#9654;</button>
+  </div>
 </div>
 
-<!-- New agent modal -->
-<div class="modal-overlay hidden" id="addModal">
-  <div class="modal">
-    <h3>New Agent</h3>
-    <label>Name</label>
-    <input type="text" id="newName" placeholder="my-project" />
-    <label>Path (local mode)</label>
-    <input type="text" id="newPath" placeholder="~/code/my-project" />
-    <label>Description</label>
-    <input type="text" id="newDesc" placeholder="REST backend service" />
-    <label>System prompt (cloud, optional)</label>
-    <textarea class="sysprompt" id="newSystem" placeholder="You are a senior backend engineer..."></textarea>
-    <div class="modal__btns">
-      <button class="cancel-btn" id="addCancel">Cancel</button>
-      <button class="create-btn" id="addCreate">Create</button>
-    </div>
+<!-- Terminal drawer -->
+<div class="terminal-drawer" id="terminalDrawer">
+  <div class="terminal-drawer__handle" id="terminalHandle">
+    <div class="terminal-drawer__bar"></div>
   </div>
+  <div class="terminal-drawer__tabs" id="terminalTabs"></div>
+  <div class="terminal-drawer__body" id="terminalBody"></div>
 </div>
 
 <!-- Settings modal -->
 <div class="modal-overlay hidden" id="settingsModal">
   <div class="modal">
     <h3>Settings</h3>
-    <label>Anthropic API Key (cloud mode)</label>
+    <label>Anthropic API Key</label>
     <input type="password" id="settingsKey" placeholder="sk-ant-api03-..." />
     <label>OpenAI API Key (auto-pilot)</label>
     <input type="password" id="settingsOpenAI" placeholder="sk-..." />
-    <label style="font-size:10px;color:var(--dim);margin-top:2px;text-transform:none;letter-spacing:0">Used by auto-pilot to reason about agent questions while you're away</label>
+    <label style="font-size:9px;color:var(--dim);margin-top:2px;text-transform:none;letter-spacing:0">Powers auto-pilot decisions when you're away</label>
     <label>Default Model</label>
     <input type="text" id="settingsModel" placeholder="claude-opus-4-6" />
     <div class="modal__btns">
       <button class="cancel-btn" id="settingsCancel">Cancel</button>
-      <button class="create-btn" id="settingsSave">Save</button>
+      <button class="save-btn" id="settingsSave">Save</button>
     </div>
   </div>
 </div>
@@ -539,7 +411,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  Voz — Jarvis-style orchestrator
+//  Voz — Voice-first orchestrator
 // ═══════════════════════════════════════════════════════
 
 const STATE_KEY = "voz_state";
@@ -547,15 +419,16 @@ const API_KEY_KEY = "voz_api_key";
 const OPENAI_KEY_KEY = "voz_openai_key";
 const MODEL_KEY = "voz_model";
 const DEFAULT_MODEL = "claude-opus-4-6";
-const STALE_AFTER = 2;
 const VOZ_ID = "local-voz";
+const STALE_AFTER = 2;
 
 let MODE = "cloud";
 let LOCAL_API = "";
 let state = loadState();
 let prevOutputs = {};
 let staleCounters = {};
-let expandedAgent = null;
+let activeTermTab = "voz";
+let termDrawerOpen = false;
 
 function loadState() {
   try { const r = localStorage.getItem(STATE_KEY); if (r) return JSON.parse(r); } catch {}
@@ -575,36 +448,28 @@ function setOpenAIKey(k) { localStorage.setItem(OPENAI_KEY_KEY, k); }
 
 function parseClaudeState(output) {
   if (!output || !output.trim()) return { state: "unknown", label: "No output", preview: "" };
-
   const lines = output.split("\n");
   const trimmed = lines.map(l => l.trim()).filter(l => l.length > 0);
   const last5 = trimmed.slice(-5).join("\n");
   const last8 = trimmed.slice(-8).join("\n");
-
-  // Back at bash shell
   const lastLine = trimmed[trimmed.length - 1] || "";
-  if (/\$\s*$/.test(lastLine) && /@/.test(lastLine)) {
+
+  if (/\$\s*$/.test(lastLine) && /@/.test(lastLine))
     return { state: "shell", label: "Offline", preview: "Claude exited" };
-  }
 
-  // Fresh prompt — never interacted
-  if (/Try \u201c/.test(last8) || /Try "/.test(last8)) {
-    return { state: "ready", label: "Standing by", preview: "Awaiting instructions" };
-  }
+  if (/Try \u201c/.test(last8) || /Try "/.test(last8))
+    return { state: "ready", label: "Standing by", preview: "Ready for your command" };
 
-  // Permission prompt
   if (/Allow\?|Do you want to proceed|\(y\/n\)|\(Y\/n\)|yes\/no/i.test(last5)) {
     const q = trimmed.filter(l => /Allow\?|\?|proceed|confirm/i.test(l)).pop() || "";
     return { state: "asking", label: "Awaiting approval", preview: cleanPreview(q) || "Needs your confirmation" };
   }
 
-  // AskUserQuestion prompt
   if (/\d+\.\s|Select|Choose|Which|pick/i.test(last5) && /\?\s*$/.test(last5)) {
     const questionLine = trimmed.filter(l => /\?/.test(l)).pop() || "";
     return { state: "asking", label: "Question for you", preview: cleanPreview(questionLine) };
   }
 
-  // Working — tool execution
   const workPatterns = [
     /\u23f5\s+(Read|Edit|Write|Bash|Glob|Grep|Task)\b/,
     /\u29eb\s/, /^\s*\u280[0-9a-f]/, /Running\b.*\.\.\./,
@@ -617,47 +482,37 @@ function parseClaudeState(output) {
     }
   }
 
-  // Responding (no prompt at end)
   const hasPrompt = /^\u276f\s*$/.test(lastLine) || /^\u276f\s/.test(lastLine);
   if (!hasPrompt) {
     const recent = trimmed.slice(-6);
-    if (recent.some(l => /^\s*\u23bf|^\s*\u2502|^\s*\u2514/.test(l))) {
+    if (recent.some(l => /^\s*\u23bf|^\s*\u2502|^\s*\u2514/.test(l)))
       return { state: "working", label: "Responding", preview: cleanPreview(lastLine) };
-    }
   }
 
-  // Idle at prompt — extract last interaction
   if (hasPrompt || /\u276f/.test(last5)) {
-    let lastUserMsg = "", lastClaudeMsg = "";
+    let lastClaudeMsg = "";
     for (let i = trimmed.length - 1; i >= 0; i--) {
-      if (/^\u276f\s+\S/.test(trimmed[i]) && !lastUserMsg) lastUserMsg = trimmed[i].replace(/^\u276f\s+/, "");
-      if (/^\u23bf\s/.test(trimmed[i]) && !lastClaudeMsg) lastClaudeMsg = trimmed[i].replace(/^\u23bf\s+/, "");
-      if (lastUserMsg && lastClaudeMsg) break;
+      if (/^\u23bf\s/.test(trimmed[i]) && !lastClaudeMsg) { lastClaudeMsg = trimmed[i].replace(/^\u23bf\s+/, ""); break; }
     }
-
-    // Check if Claude's last block was a question
     const claudeLines = [];
     let inResp = false;
     for (let i = 0; i < trimmed.length; i++) {
-      if (/^\u23bf/.test(trimmed[i])) { inResp = true; claudeLines.push(trimmed[i].replace(/^\u23bf\s*/, "")); }
+      if (/^\u23bf/.test(trimmed[i])) { inResp = true; claudeLines.length = 0; claudeLines.push(trimmed[i].replace(/^\u23bf\s*/, "")); }
       else if (/^\u276f/.test(trimmed[i])) { inResp = false; claudeLines.length = 0; }
       else if (inResp) claudeLines.push(trimmed[i]);
     }
     const block = claudeLines.join(" ").trim();
-    const isQuestion = /\?\s*$/.test(block) || /\bwhat\b|\bwhich\b|\bshould\b|\bwould you\b|\bdo you\b/i.test(block.slice(-120));
-
-    if (isQuestion && block) return { state: "asking", label: "Asked you", preview: cleanPreview(block.slice(-120)) };
+    const isQ = /\?\s*$/.test(block) || /\bwhat\b|\bwhich\b|\bshould\b|\bwould you\b|\bdo you\b/i.test(block.slice(-120));
+    if (isQ && block) return { state: "asking", label: "Asked you", preview: cleanPreview(block.slice(-120)) };
     if (lastClaudeMsg) return { state: "idle", label: "Complete", preview: cleanPreview(lastClaudeMsg) };
-    if (lastUserMsg) return { state: "idle", label: "Complete", preview: "You said: " + cleanPreview(lastUserMsg) };
-    return { state: "idle", label: "Idle", preview: "Awaiting instructions" };
+    return { state: "idle", label: "Ready", preview: "Awaiting your command" };
   }
 
   return { state: "unknown", label: "Active", preview: cleanPreview(lastLine) };
 }
 
 function cleanPreview(text) {
-  return text
-    .replace(/\x1b\[[0-9;]*m/g, "")
+  return text.replace(/\x1b\[[0-9;]*m/g, "")
     .replace(/[\u23f5\u23bf\u276f\u29eb\u2502\u2514\u250c\u2500]/g, "")
     .replace(/\s+/g, " ").trim().slice(0, 140);
 }
@@ -675,31 +530,27 @@ function updateStaleness(s) {
 function isStale(s) { return (staleCounters[s.id] || 0) >= STALE_AFTER; }
 
 // ═══════════════════════════════════════════════════════
-//  Auto-pilot (away mode)
+//  Auto-pilot
 // ═══════════════════════════════════════════════════════
 
 const AP_KEY = "voz_autopilot";
-const AWAY_TIMEOUT = 60_000;        // 1 min idle = "away"
-const AP_CHECK_INTERVAL = 8_000;    // check every 8s
-const AP_COOLDOWN = 30_000;         // don't re-nudge same agent within 30s
+const AWAY_TIMEOUT = 60_000;
+const AP_CHECK_INTERVAL = 8_000;
+const AP_COOLDOWN = 30_000;
 
 let autopilot = localStorage.getItem(AP_KEY) === "on";
 let lastUserActivity = Date.now();
-let apLog = [];           // { time, agent, action, preview }
-let apCooldowns = {};     // agentId -> last nudge timestamp
+let apLog = [];
+let apCooldowns = {};
 
 function isUserAway() { return Date.now() - lastUserActivity > AWAY_TIMEOUT; }
 
 function trackActivity() {
   const was = isUserAway();
   lastUserActivity = Date.now();
-  // User returned — show summary if there were auto-actions
-  if (was && apLog.length > 0) {
-    showAwayBanner();
-  }
+  if (was && apLog.length > 0) showAwayBanner();
 }
 
-// Track mouse, keyboard, focus
 ["mousemove", "keydown", "click", "touchstart"].forEach(evt =>
   document.addEventListener(evt, trackActivity, { passive: true })
 );
@@ -709,7 +560,7 @@ function showAwayBanner() {
   const text = document.getElementById("awayText");
   const count = apLog.length;
   const names = [...new Set(apLog.map(l => l.agent))];
-  text.textContent = `Auto-pilot handled ${count} action${count !== 1 ? "s" : ""} while you were away (${names.join(", ")})`;
+  text.textContent = `Auto-pilot handled ${count} action${count !== 1 ? "s" : ""} (${names.join(", ")})`;
   banner.classList.add("show");
 }
 
@@ -721,74 +572,39 @@ document.getElementById("awayDismiss").onclick = () => {
 async function autopilotCheck() {
   if (!autopilot || MODE !== "local") return;
   if (!isUserAway()) return;
-
   const agents = state.sessions.filter(s => s.id !== VOZ_ID && s.local);
   const now = Date.now();
-
   for (const agent of agents) {
     const cs = agent._parsed || parseClaudeState(agent.output);
-
-    // Skip if we recently nudged this agent
     if (apCooldowns[agent.id] && now - apCooldowns[agent.id] < AP_COOLDOWN) continue;
-
     if (cs.state === "asking") {
       let msg;
       const openaiKey = getOpenAIKey();
-
-      if (openaiKey) {
-        // Consult OpenAI for a thoughtful answer
-        msg = await consultOpenAI(agent, cs, openaiKey);
-      }
-
-      if (!msg) {
-        // Fallback if no key or API call failed
-        msg = "The user is away. Use your best judgment and proceed. If it's a destructive or irreversible action, skip it and move on to the next task.";
-      }
-
+      if (openaiKey) msg = await consultOpenAI(agent, cs, openaiKey);
+      if (!msg) msg = "The user is away. Use your best judgment and proceed. If it's a destructive action, skip it.";
       await localDispatchSilent(agent.id, msg);
       apCooldowns[agent.id] = now;
-      apLog.push({ time: now, agent: agent.name, action: openaiKey ? "AI-decided" : "auto-proceeded", preview: cs.preview, response: msg });
-      console.log(`[autopilot] ${openaiKey ? "AI answered" : "Nudged"} ${agent.name}: ${msg.slice(0, 80)}`);
+      apLog.push({ time: now, agent: agent.name, action: openaiKey ? "AI-decided" : "auto-proceeded", preview: cs.preview });
     }
   }
 }
 
 async function consultOpenAI(agent, cs, apiKey) {
   try {
-    // Get more context — last 30 lines of the agent's terminal
     const context = (agent.output || "").split("\n").slice(-30).join("\n");
-
-    const systemPrompt = `You are Voz, an AI orchestrator managing coding agents. The user is away and has enabled auto-pilot.
-
-An agent named "${agent.name}" (${agent.desc || "no description"}) needs a decision. Your job:
-1. Read the agent's terminal output to understand what it's asking
-2. Make a reasonable decision on behalf of the user
-3. Reply with ONLY the answer to send to the agent — no preamble, no explanation to the user
-4. Be concise and direct — the agent will receive your words as typed input
-5. If it's asking for a y/n confirmation on something safe, say "y"
-6. If it's a design/architecture choice, pick the simpler option
-7. If it's asking about something destructive (deleting data, force pushing, dropping tables), say "skip this and move on to the next task"
-8. Keep answers under 100 words`;
-
     const r = await localApi("/api/openai/chat", {
       method: "POST",
       body: JSON.stringify({
-        apiKey,
-        model: "gpt-4o",
+        apiKey, model: "gpt-4o",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Agent "${agent.name}" terminal output:\n\n${context}\n\nThe agent's current state: ${cs.label}\nDetected question/prompt: ${cs.preview}\n\nWhat should I tell this agent?` },
+          { role: "system", content: `You are Voz, an AI orchestrator. The user is away. Agent "${agent.name}" needs a decision. Reply ONLY with the answer to send. Be concise. For y/n on safe ops say "y". For destructive actions say "skip this". Keep under 100 words.` },
+          { role: "user", content: `Terminal:\n${context}\n\nState: ${cs.label}\nQuestion: ${cs.preview}` },
         ],
       }),
     });
-
     if (r.ok && r.reply) return r.reply.trim();
-    console.warn("[autopilot] OpenAI error:", r.error);
     return null;
-  } catch (e) {
-    console.warn("[autopilot] OpenAI call failed:", e);
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function localDispatchSilent(name, message) {
@@ -798,7 +614,6 @@ async function localDispatchSilent(name, message) {
   });
 }
 
-// Start auto-pilot checker
 setInterval(autopilotCheck, AP_CHECK_INTERVAL);
 
 // ═══════════════════════════════════════════════════════
@@ -806,7 +621,6 @@ setInterval(autopilotCheck, AP_CHECK_INTERVAL);
 // ═══════════════════════════════════════════════════════
 
 async function detectMode() {
-  // If served from the local dashboard, skip the health check
   if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
     LOCAL_API = location.origin;
     return "local";
@@ -824,18 +638,14 @@ async function init() {
   const badge = document.getElementById("modeBadge");
 
   if (MODE === "local") {
-    badge.textContent = "LOCAL"; badge.className = "voz__badge local";
+    badge.textContent = "LOCAL"; badge.className = "topbar__badge local";
     document.getElementById("onboarding").classList.add("hidden");
-    document.getElementById("tmuxBar").classList.remove("hidden");
     document.getElementById("app").classList.remove("hidden");
     await localRefresh();
     renderAll();
     setInterval(localRefresh, 4000);
   } else {
-    badge.textContent = "CLOUD"; badge.className = "voz__badge cloud";
-    document.getElementById("tmuxBar").classList.add("hidden");
-    document.getElementById("newPath").closest("label")?.style && (document.getElementById("newPath").previousElementSibling.style.display = "none");
-    document.getElementById("newPath").style.display = "none";
+    badge.textContent = "CLOUD"; badge.className = "topbar__badge cloud";
     if (getApiKey()) {
       document.getElementById("app").classList.remove("hidden");
       renderAll();
@@ -846,7 +656,7 @@ async function init() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  Local mode
+//  Local API
 // ═══════════════════════════════════════════════════════
 
 async function localApi(path, opts = {}) {
@@ -858,28 +668,26 @@ async function localApi(path, opts = {}) {
 
 async function localRefresh() {
   const data = await localApi("/api/status");
-  const dot = document.getElementById("tmuxDot");
-  const text = document.getElementById("tmuxText");
-
-  if (data.session) { dot.className = "agents__tmux-dot on"; text.textContent = "Running"; }
-  else { dot.className = "agents__tmux-dot off"; text.textContent = "Stopped"; }
-
   if (data.projects) {
     for (const lp of data.projects) {
       const sid = "local-" + lp.name;
       const existing = state.sessions.find(s => s.id === sid);
       if (!existing) {
-        state.sessions.push({
-          id: sid, name: lp.name, desc: lp.description || "",
-          local: true, status: lp.active ? "live" : "idle",
-          output: lp.output || "",
-        });
+        state.sessions.push({ id: sid, name: lp.name, desc: lp.description || "", local: true, status: lp.active ? "live" : "idle", output: lp.output || "" });
       } else {
         existing.status = lp.active ? "live" : "idle";
         existing.output = lp.output || existing.output || "";
         existing.desc = lp.description || existing.desc;
       }
       updateStaleness(state.sessions.find(s => s.id === sid));
+    }
+    // Handle voz session from the voz field
+    if (data.voz) {
+      const vozSession = state.sessions.find(s => s.id === VOZ_ID);
+      if (vozSession) {
+        vozSession.output = data.voz.output || vozSession.output;
+        vozSession.status = "live";
+      }
     }
     const localNames = new Set(data.projects.map(p => "local-" + p.name));
     state.sessions = state.sessions.filter(s => !s.local || localNames.has(s.id));
@@ -894,34 +702,163 @@ async function localDispatch(name, message) {
     method: "POST", body: JSON.stringify({ message }),
   });
   if (r.ok) {
-    if (name !== VOZ_ID) toast("Sent to " + realName);
+    setTimeout(localRefresh, 500);
     setTimeout(localRefresh, 2000);
+    setTimeout(localRefresh, 4000);
   } else {
     toast("Error: " + (r.error || "failed"));
   }
 }
 
-async function localStopProject(name) {
-  const realName = name.replace("local-", "");
-  await localApi(`/api/project/${realName}/stop`, { method: "POST" });
-  toast("Ctrl-C sent to " + realName);
-  setTimeout(localRefresh, 1000);
+// ═══════════════════════════════════════════════════════
+//  Render
+// ═══════════════════════════════════════════════════════
+
+function renderAll() {
+  renderStage();
+  renderAgentPills();
+  if (termDrawerOpen) renderTerminal();
 }
 
-async function localStart() {
-  document.getElementById("tmuxDot").className = "agents__tmux-dot on";
-  document.getElementById("tmuxText").textContent = "Starting...";
-  toast("Starting all sessions...");
-  await localApi("/api/start", { method: "POST" });
-  setTimeout(localRefresh, 3000);
+function renderStage() {
+  const voz = state.sessions.find(s => s.id === VOZ_ID);
+  const stage = document.getElementById("stage");
+  const label = document.getElementById("statusLabel");
+  const hint = document.getElementById("statusHint");
+
+  if (!voz) {
+    label.textContent = "No session detected";
+    hint.textContent = "Start tmux session to connect";
+    stage.className = "stage";
+    return;
+  }
+
+  const cs = parseClaudeState(voz.output);
+  voz._parsed = cs;
+
+  // Determine stage state (voice state takes priority)
+  let stageState = cs.state === "working" ? "working" :
+                   cs.state === "asking" ? "asking" :
+                   cs.state === "idle" || cs.state === "ready" ? "idle" : "idle";
+
+  if (isRecording) stageState = "listening";
+  if (isSpeaking) stageState = "speaking";
+
+  stage.className = "stage stage--" + stageState;
+
+  // Status label
+  const awayLabel = (autopilot && isUserAway()) ? " [auto-pilot]" : "";
+  if (isRecording) {
+    label.textContent = "Listening...";
+    hint.textContent = "Tap again to cancel";
+  } else if (isSpeaking) {
+    label.textContent = "Speaking...";
+    hint.textContent = "Tap to interrupt";
+  } else if (cs.state === "working") {
+    label.textContent = cs.preview || "Working...";
+    hint.textContent = awayLabel || "";
+  } else if (cs.state === "asking") {
+    label.textContent = cs.preview || cs.label;
+    hint.textContent = "Tap the orb to respond" + awayLabel;
+  } else if (cs.state === "ready" || cs.state === "idle") {
+    const agentNote = getAgentNote();
+    label.textContent = cs.preview || "Ready";
+    hint.textContent = agentNote || ("Tap the orb to talk" + awayLabel);
+  } else if (cs.state === "shell") {
+    label.textContent = "Offline";
+    hint.textContent = "Hit restart to relaunch";
+  } else {
+    label.textContent = cs.label || "Active";
+    hint.textContent = awayLabel || "";
+  }
+
+  // TTS
+  if (ttsEnabled) speakNewOutput();
 }
 
-async function localStop() {
-  document.getElementById("tmuxDot").className = "agents__tmux-dot off";
-  document.getElementById("tmuxText").textContent = "Stopping...";
-  toast("Stopping...");
-  await localApi("/api/stop", { method: "POST" });
-  setTimeout(localRefresh, 3000);
+function getAgentNote() {
+  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
+  const asking = agents.filter(s => (s._parsed || parseClaudeState(s.output)).state === "asking");
+  const working = agents.filter(s => (s._parsed || parseClaudeState(s.output)).state === "working");
+  const parts = [];
+  if (asking.length) parts.push(asking.map(s => s.name).join(", ") + " needs you");
+  if (working.length) parts.push(working.map(s => s.name).join(", ") + " working");
+  return parts.join(" \u2022 ");
+}
+
+function renderAgentPills() {
+  const container = document.getElementById("agentPills");
+  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
+  if (agents.length === 0) { container.innerHTML = ""; return; }
+
+  container.innerHTML = agents.map(s => {
+    const cs = parseClaudeState(s.output);
+    s._parsed = cs;
+    const dotClass = cs.state === "working" ? "working" : cs.state === "asking" ? "asking" :
+      (s.local && isStale(s)) ? "stale" : s.status === "live" ? "live" : "stale";
+    return `<div class="agent-pill" data-id="${s.id}" title="${esc(cs.preview || cs.label)}">
+      <div class="agent-pill__dot ${dotClass}"></div>
+      <span>${esc(s.name)}</span>
+    </div>`;
+  }).join("");
+
+  // Click to open terminal drawer to that agent
+  container.querySelectorAll(".agent-pill").forEach(pill => {
+    pill.onclick = () => {
+      activeTermTab = pill.dataset.id.replace("local-", "");
+      openTermDrawer();
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  Terminal drawer
+// ═══════════════════════════════════════════════════════
+
+function openTermDrawer() {
+  termDrawerOpen = true;
+  document.getElementById("terminalDrawer").classList.add("open");
+  renderTerminal();
+}
+
+function closeTermDrawer() {
+  termDrawerOpen = false;
+  document.getElementById("terminalDrawer").classList.remove("open");
+}
+
+document.getElementById("terminalHandle").onclick = () => {
+  if (termDrawerOpen) closeTermDrawer(); else openTermDrawer();
+};
+
+document.getElementById("terminalBtn").onclick = () => {
+  if (termDrawerOpen) closeTermDrawer(); else { activeTermTab = "voz"; openTermDrawer(); }
+};
+
+function renderTerminal() {
+  const tabs = document.getElementById("terminalTabs");
+  const body = document.getElementById("terminalBody");
+  const allSessions = [
+    { id: "voz", name: "Voz" },
+    ...state.sessions.filter(s => s.id !== VOZ_ID).map(s => ({ id: s.name, name: s.name }))
+  ];
+
+  tabs.innerHTML = allSessions.map(s =>
+    `<button class="terminal-drawer__tab${s.id === activeTermTab ? " active" : ""}" data-tab="${s.id}">${esc(s.name)}</button>`
+  ).join("");
+
+  tabs.querySelectorAll(".terminal-drawer__tab").forEach(btn => {
+    btn.onclick = () => { activeTermTab = btn.dataset.tab; renderTerminal(); };
+  });
+
+  // Find the session
+  const sid = activeTermTab === "voz" ? VOZ_ID : "local-" + activeTermTab;
+  const session = state.sessions.find(s => s.id === sid);
+  if (session && session.output) {
+    body.innerHTML = colorize(session.output);
+    body.scrollTop = body.scrollHeight;
+  } else {
+    body.innerHTML = '<span style="opacity:0.3">No output</span>';
+  }
 }
 
 function colorize(text) {
@@ -933,255 +870,206 @@ function colorize(text) {
   }).join("\n");
 }
 
-// ═══════════════════════════════════════════════════════
-//  Cloud mode
-// ═══════════════════════════════════════════════════════
-
-function createSession(name, desc, systemPrompt) {
-  return { id: crypto.randomUUID(), name: name || "untitled", desc: desc || "",
-    systemPrompt: systemPrompt || "", messages: [], status: "idle",
-    createdAt: Date.now(), lastActiveAt: Date.now() };
-}
-
-async function callClaude(apiKey, messages, systemPrompt, stream = false) {
-  const body = { model: getModel(), max_tokens: 8192, messages, stream };
-  if (systemPrompt) body.system = systemPrompt;
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-    body: JSON.stringify(body),
-  });
-  return stream ? res : res.json();
-}
+// Swipe down to close
+let tdTouchY = 0;
+document.getElementById("terminalDrawer").addEventListener("touchstart", e => { tdTouchY = e.touches[0].clientY; }, { passive: true });
+document.getElementById("terminalDrawer").addEventListener("touchend", e => {
+  if (e.changedTouches[0].clientY - tdTouchY > 60) closeTermDrawer();
+}, { passive: true });
 
 // ═══════════════════════════════════════════════════════
-//  Render
+//  Text input (secondary)
 // ═══════════════════════════════════════════════════════
 
-function renderAll() {
-  renderVoz();
-  renderAgents();
-}
-
-function renderVoz() {
-  const voz = state.sessions.find(s => s.id === VOZ_ID);
-  const main = document.getElementById("vozMain");
-  const statusEl = document.getElementById("vozStatus");
-  const termEl = document.getElementById("vozTerminal");
-
-  if (!voz) {
-    statusEl.textContent = "No session detected";
-    main.className = "voz";
-    return;
-  }
-
-  const cs = parseClaudeState(voz.output);
-  voz._parsed = cs;
-
-  // Update orb state
-  main.className = "voz" +
-    (cs.state === "working" ? " voz--working" : "") +
-    (cs.state === "asking" ? " voz--asking" : "");
-
-  // Status text
-  const agentSummary = getAgentSummary();
-  const awayLabel = (autopilot && isUserAway()) ? " [auto-pilot active]" : "";
-  if (cs.state === "working") {
-    statusEl.textContent = (cs.preview ? "Working \u2014 " + cs.preview : "Working...") + awayLabel;
-  } else if (cs.state === "asking") {
-    statusEl.textContent = (cs.preview ? cs.label + ": " + cs.preview : cs.label) + awayLabel;
-  } else if (cs.state === "ready") {
-    statusEl.textContent = agentSummary
-      ? "Standing by \u2014 " + agentSummary + awayLabel
-      : "Standing by. Ready for your command." + awayLabel;
-  } else if (cs.state === "idle") {
-    statusEl.textContent = (cs.preview ? cs.preview : (agentSummary || "Ready.")) + awayLabel;
-  } else {
-    statusEl.textContent = (cs.label || "Active") + awayLabel;
-  }
-
-  // Terminal — in-place update
-  if (voz.output) {
-    const atBottom = termEl.scrollTop + termEl.clientHeight >= termEl.scrollHeight - 30;
-    termEl.innerHTML = colorize(voz.output);
-    if (atBottom) termEl.scrollTop = termEl.scrollHeight;
-  }
-}
-
-function getAgentSummary() {
-  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
-  if (agents.length === 0) return "";
-  const working = agents.filter(s => (s._parsed || parseClaudeState(s.output)).state === "working");
-  const asking = agents.filter(s => (s._parsed || parseClaudeState(s.output)).state === "asking");
-  const parts = [];
-  if (working.length) parts.push(working.map(s => s.name).join(", ") + " working");
-  if (asking.length) parts.push(asking.map(s => s.name).join(", ") + " needs you");
-  return parts.join(" \u2022 ");
-}
-
-function renderAgents() {
-  const list = document.getElementById("agentList");
-  const countEl = document.getElementById("agentCount");
-  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
-
-  countEl.textContent = agents.length;
-
-  // Preserve scroll
-  const scrollTop = list.scrollTop;
-  list.innerHTML = "";
-
-  agents.forEach(s => {
-    const cs = parseClaudeState(s.output);
-    s._parsed = cs;
-
-    const dotState = cs.state === "working" ? "working" : cs.state === "asking" ? "asking" :
-      (s.local && isStale(s)) ? "stale" : s.status === "live" ? "live" : "stale";
-
-    const card = document.createElement("div");
-    card.className = "agent" + (expandedAgent === s.id ? " expanded" : "");
-    card.innerHTML = `
-      <div class="agent__row">
-        <div class="agent__dot ${dotState}"></div>
-        <div class="agent__name">${esc(s.name)}</div>
-        <div class="agent__state-tag ${cs.state}">${esc(cs.label)}</div>
-      </div>
-      ${cs.preview ? `<div class="agent__preview">${esc(cs.preview)}</div>` : ""}
-      <div class="agent__drawer">
-        <div class="agent__term" id="aterm-${s.id}">${s.output ? miniTerminal(s.output) : '<span style="opacity:0.3">No output</span>'}</div>
-        <div class="agent__actions">
-          <button onclick="agentSend('${s.id}')">Send message</button>
-          <button onclick="localStopProject('${s.id}')">Ctrl-C</button>
-        </div>
-      </div>
-    `;
-    card.querySelector(".agent__row").onclick = () => {
-      expandedAgent = expandedAgent === s.id ? null : s.id;
-      renderAgents();
-    };
-    list.appendChild(card);
-  });
-
-  list.scrollTop = scrollTop;
-}
-
-function miniTerminal(output) {
-  // Last 12 lines, compact
-  const lines = output.split("\n").slice(-12);
-  return lines.map(l => esc(l)).join("\n");
-}
-
-function agentSend(sid) {
-  const msg = prompt("Message for " + sid.replace("local-", "") + ":");
-  if (msg && msg.trim()) localDispatch(sid, msg.trim());
-}
-
-// ═══════════════════════════════════════════════════════
-//  Voz input
-// ═══════════════════════════════════════════════════════
-
-function setupVozInput() {
-  const input = document.getElementById("vozInput");
-  const btn = document.getElementById("vozSend");
+function setupTextInput() {
+  const input = document.getElementById("textInput");
+  const btn = document.getElementById("sendBtn");
   const doSend = async () => {
     const msg = input.value.trim();
     if (!msg) return;
     input.value = "";
-    // Immediate visual feedback
-    const statusEl = document.getElementById("vozStatus");
-    statusEl.textContent = "Sending: " + msg;
-    document.getElementById("vozMain").className = "voz voz--working";
-    btn.disabled = true;
-    btn.style.opacity = "0.5";
-    if (MODE === "local") {
-      await localDispatch(VOZ_ID, msg);
-      // Quick refresh to show the message in the terminal
-      setTimeout(localRefresh, 500);
-      setTimeout(localRefresh, 2000);
-      setTimeout(localRefresh, 4000);
-    }
-    btn.disabled = false;
-    btn.style.opacity = "";
+    showTranscript(msg);
+    document.getElementById("statusLabel").textContent = "Sending...";
+    document.getElementById("stage").className = "stage stage--working";
+    btn.disabled = true; btn.style.opacity = "0.4";
+    if (MODE === "local") await localDispatch(VOZ_ID, msg);
+    btn.disabled = false; btn.style.opacity = "";
   };
   btn.onclick = doSend;
   input.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
 }
-setupVozInput();
+setupTextInput();
+
+function showTranscript(text) {
+  const el = document.getElementById("transcript");
+  el.textContent = text;
+  el.classList.add("visible");
+  setTimeout(() => el.classList.remove("visible"), 5000);
+}
 
 // ═══════════════════════════════════════════════════════
-//  Auto-pilot toggle
+//  Voice — The orb IS the mic
 // ═══════════════════════════════════════════════════════
 
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isRecording = false;
+let isSpeaking = false;
+let lastSpokenOutput = "";
+let ttsEnabled = localStorage.getItem("voz_tts") !== "off";
+
+function setupVoice() {
+  const orbArea = document.getElementById("orbArea");
+
+  if (!SpeechRecognition) {
+    document.getElementById("statusHint").textContent = "Voice not supported — use text input";
+    orbArea.onclick = () => document.getElementById("textInput").focus();
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    isRecording = true;
+    renderAll();
+  };
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
+    showTranscript(transcript);
+
+    if (e.results[e.results.length - 1].isFinal) {
+      stopRecording();
+      if (transcript.trim()) {
+        // Send it
+        document.getElementById("statusLabel").textContent = "Sending...";
+        document.getElementById("stage").className = "stage stage--working";
+        if (MODE === "local") localDispatch(VOZ_ID, transcript.trim());
+      }
+    }
+  };
+
+  recognition.onerror = (e) => {
+    stopRecording();
+    if (e.error === "no-speech") toast("No speech detected");
+    else if (e.error !== "aborted") toast("Mic error: " + e.error);
+  };
+
+  recognition.onend = () => stopRecording();
+
+  // Tap orb to start/stop
+  orbArea.onclick = () => {
+    if (isSpeaking) {
+      // Interrupt TTS
+      window.speechSynthesis.cancel();
+      isSpeaking = false;
+      renderAll();
+      return;
+    }
+    if (isRecording) {
+      recognition.abort();
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+}
+
+function startRecording() {
+  if (!recognition || isRecording) return;
+  try { recognition.start(); } catch {}
+}
+
+function stopRecording() {
+  isRecording = false;
+  renderAll();
+}
+
+// TTS
+function speakNewOutput() {
+  if (!window.speechSynthesis) return;
+  const voz = state.sessions.find(s => s.id === VOZ_ID);
+  if (!voz || !voz.output) return;
+
+  const cs = voz._parsed || parseClaudeState(voz.output);
+  if (cs.state !== "idle" && cs.state !== "asking") return;
+
+  // Extract last Claude response block
+  const lines = voz.output.split("\n");
+  const claudeLines = [];
+  let inResp = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (/^\u23bf/.test(t)) { inResp = true; claudeLines.length = 0; claudeLines.push(t.replace(/^\u23bf\s*/, "")); }
+    else if (/^\u276f/.test(t)) { inResp = false; }
+    else if (inResp) claudeLines.push(t);
+  }
+
+  const lastResponse = claudeLines.join(" ").trim()
+    .replace(/\x1b\[[0-9;]*m/g, "").replace(/[`*_#]/g, "")
+    .replace(/\s+/g, " ").slice(0, 500);
+
+  if (!lastResponse || lastResponse === lastSpokenOutput || lastResponse.length < 5) return;
+  lastSpokenOutput = lastResponse;
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(lastResponse);
+  utter.rate = 1.05; utter.pitch = 0.95; utter.volume = 0.9;
+
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => /Google UK English Male|Daniel|Microsoft David/i.test(v.name))
+    || voices.find(v => /en.*(male|natural)/i.test(v.name))
+    || voices.find(v => /en/i.test(v.lang));
+  if (preferred) utter.voice = preferred;
+
+  utter.onstart = () => { isSpeaking = true; renderAll(); };
+  utter.onend = () => { isSpeaking = false; renderAll(); };
+  utter.onerror = () => { isSpeaking = false; };
+
+  window.speechSynthesis.speak(utter);
+}
+
+setupVoice();
+
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+// ═══════════════════════════════════════════════════════
+//  Topbar buttons
+// ═══════════════════════════════════════════════════════
+
+// Auto-pilot toggle
 function updateAutopilotUI() {
   const btn = document.getElementById("autopilotBtn");
-  btn.className = "voz__autopilot" + (autopilot ? " on" : "");
+  btn.className = "topbar__ap" + (autopilot ? " on" : "");
 }
 document.getElementById("autopilotBtn").onclick = () => {
   autopilot = !autopilot;
   localStorage.setItem(AP_KEY, autopilot ? "on" : "off");
   updateAutopilotUI();
-  if (autopilot) {
-    const hasAI = !!getOpenAIKey();
-    toast(hasAI
-      ? "Auto-pilot on \u2014 GPT-4o will handle agent decisions"
-      : "Auto-pilot on \u2014 add OpenAI key in Settings for smarter decisions");
-  } else {
-    toast("Auto-pilot off");
-  }
+  toast(autopilot
+    ? (getOpenAIKey() ? "Auto-pilot on \u2014 GPT-4o decides" : "Auto-pilot on")
+    : "Auto-pilot off");
 };
 updateAutopilotUI();
 
-// ═══════════════════════════════════════════════════════
-//  New agent
-// ═══════════════════════════════════════════════════════
-
-document.getElementById("addAgentBtn").onclick = () => {
-  document.getElementById("addModal").classList.remove("hidden");
-  document.getElementById("newName").value = "";
-  document.getElementById("newPath").value = "";
-  document.getElementById("newDesc").value = "";
-  document.getElementById("newSystem").value = "";
-  setTimeout(() => document.getElementById("newName").focus(), 100);
+// Restart
+document.getElementById("restartBtn").onclick = async () => {
+  const btn = document.getElementById("restartBtn");
+  btn.classList.add("spinning");
+  toast("Restarting Voz...");
+  await localApi("/api/project/voz/restart", { method: "POST" });
+  setTimeout(() => { btn.classList.remove("spinning"); }, 8000);
+  setTimeout(localRefresh, 5000);
+  setTimeout(localRefresh, 10000);
 };
-document.getElementById("addCancel").onclick = () => document.getElementById("addModal").classList.add("hidden");
-document.getElementById("addCreate").onclick = () => {
-  const name = document.getElementById("newName").value.trim();
-  if (!name) { document.getElementById("newName").focus(); return; }
-  const desc = document.getElementById("newDesc").value.trim();
-  const path = document.getElementById("newPath").value.trim();
-  const sys = document.getElementById("newSystem").value.trim();
-  if (MODE === "local" && path) {
-    toast("Local agent creation coming soon");
-    document.getElementById("addModal").classList.add("hidden");
-    return;
-  }
-  const s = createSession(name, desc, sys);
-  state.sessions.push(s); saveState();
-  document.getElementById("addModal").classList.add("hidden");
-  renderAll();
-  toast("Agent '" + name + "' created");
-};
-document.getElementById("newName").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("addCreate").click(); };
 
-// ═══════════════════════════════════════════════════════
-//  Onboarding / Settings / Modals
-// ═══════════════════════════════════════════════════════
-
-document.getElementById("apiKeySave").onclick = async () => {
-  const key = document.getElementById("apiKeyInput").value.trim();
-  const err = document.getElementById("apiKeyErr");
-  if (!key) { err.textContent = "Enter an API key."; return; }
-  err.textContent = "Validating...";
-  try {
-    const r = await callClaude(key, [{ role: "user", content: "Say hi" }], null, false);
-    if (r.error) { err.textContent = "Invalid: " + (typeof r.error === "string" ? r.error : JSON.stringify(r.error)); return; }
-    setApiKey(key);
-    document.getElementById("onboarding").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    renderAll(); toast("Connected.");
-  } catch (e) { err.textContent = "Error: " + e.message; }
-};
-document.getElementById("apiKeyInput").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("apiKeySave").click(); };
-
+// Settings
 document.getElementById("settingsBtn").onclick = () => {
   document.getElementById("settingsKey").value = getApiKey();
   document.getElementById("settingsOpenAI").value = getOpenAIKey();
@@ -1194,248 +1082,28 @@ document.getElementById("settingsSave").onclick = () => {
   const o = document.getElementById("settingsOpenAI").value.trim();
   const m = document.getElementById("settingsModel").value.trim();
   if (k) setApiKey(k);
-  setOpenAIKey(o); // allow clearing
+  setOpenAIKey(o);
   if (m) setModel(m);
   document.getElementById("settingsModal").classList.add("hidden");
-  toast(o ? "Settings saved \u2014 auto-pilot will use GPT-4o" : "Settings saved");
+  toast("Settings saved");
 };
-
-document.onkeydown = (e) => {
-  if (e.key === "Escape") {
-    document.getElementById("addModal").classList.add("hidden");
-    document.getElementById("settingsModal").classList.add("hidden");
-  }
-};
-document.getElementById("addModal").onclick = (e) => { if (e.target.id === "addModal") e.target.classList.add("hidden"); };
 document.getElementById("settingsModal").onclick = (e) => { if (e.target.id === "settingsModal") e.target.classList.add("hidden"); };
+document.onkeydown = (e) => { if (e.key === "Escape") { document.getElementById("settingsModal").classList.add("hidden"); closeTermDrawer(); } };
 
-// ═══════════════════════════════════════════════════════
-//  Restart button
-// ═══════════════════════════════════════════════════════
-
-document.getElementById("restartBtn").onclick = async () => {
-  const btn = document.getElementById("restartBtn");
-  btn.classList.add("spinning");
-  toast("Restarting Voz...");
-  await localApi("/api/project/voz/restart", { method: "POST" });
-  // Poll for restart completion
-  setTimeout(() => { btn.classList.remove("spinning"); toast("Voz restarting — ready in ~8s"); }, 8000);
-  setTimeout(localRefresh, 5000);
-  setTimeout(localRefresh, 10000);
-  setTimeout(localRefresh, 15000);
-};
-
-// ═══════════════════════════════════════════════════════
-//  Voice — Speech-to-Text & Text-to-Speech
-// ═══════════════════════════════════════════════════════
-
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let isRecording = false;
-let lastSpokenOutput = "";  // track what we've already spoken
-
-function setupVoice() {
-  const micBtn = document.getElementById("micBtn");
-  const vozMain = document.getElementById("vozMain");
-
-  if (!SpeechRecognition) {
-    micBtn.title = "Speech recognition not supported in this browser";
-    micBtn.style.opacity = "0.3";
-    micBtn.style.cursor = "default";
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = "en-US";
-
-  recognition.onstart = () => {
-    isRecording = true;
-    micBtn.classList.add("recording");
-    vozMain.classList.add("voz--recording");
-    document.getElementById("vozInput").placeholder = "Listening...";
-  };
-
-  recognition.onresult = (e) => {
-    const transcript = Array.from(e.results)
-      .map(r => r[0].transcript)
-      .join("");
-    document.getElementById("vozInput").value = transcript;
-
-    // Auto-send on final result
-    if (e.results[e.results.length - 1].isFinal) {
-      stopRecording();
-      if (transcript.trim()) {
-        document.getElementById("vozSend").click();
-      }
-    }
-  };
-
-  recognition.onerror = (e) => {
-    console.warn("[voice] Recognition error:", e.error);
-    stopRecording();
-    if (e.error === "no-speech") {
-      toast("No speech detected — try again");
-    } else if (e.error !== "aborted") {
-      toast("Mic error: " + e.error);
-    }
-  };
-
-  recognition.onend = () => {
-    stopRecording();
-  };
-
-  // Click to toggle recording
-  micBtn.onclick = () => {
-    if (isRecording) {
-      recognition.abort();
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-}
-
-function startRecording() {
-  if (!recognition || isRecording) return;
+// Onboarding
+document.getElementById("apiKeySave").onclick = async () => {
+  const key = document.getElementById("apiKeyInput").value.trim();
+  const err = document.getElementById("apiKeyErr");
+  if (!key) { err.textContent = "Enter an API key."; return; }
+  err.textContent = "Validating...";
   try {
-    recognition.start();
-  } catch (e) {
-    console.warn("[voice] Start failed:", e);
-  }
-}
-
-function stopRecording() {
-  isRecording = false;
-  const micBtn = document.getElementById("micBtn");
-  const vozMain = document.getElementById("vozMain");
-  micBtn.classList.remove("recording");
-  vozMain.classList.remove("voz--recording");
-  document.getElementById("vozInput").placeholder = "Talk to Voz...";
-}
-
-// TTS — speak new Voz responses
-function speakNewOutput() {
-  if (!window.speechSynthesis) return;
-  const voz = state.sessions.find(s => s.id === VOZ_ID);
-  if (!voz || !voz.output) return;
-
-  const cs = voz._parsed || parseClaudeState(voz.output);
-  // Only speak when idle (just finished responding) — not while working
-  if (cs.state !== "idle" && cs.state !== "asking") return;
-
-  // Extract the last Claude response block
-  const lines = voz.output.split("\n");
-  const claudeLines = [];
-  let inResp = false;
-  for (const line of lines) {
-    const t = line.trim();
-    if (/^\u23bf/.test(t)) { inResp = true; claudeLines.length = 0; claudeLines.push(t.replace(/^\u23bf\s*/, "")); }
-    else if (/^\u276f/.test(t)) { inResp = false; }
-    else if (inResp) claudeLines.push(t);
-  }
-
-  const lastResponse = claudeLines.join(" ").trim()
-    .replace(/\x1b\[[0-9;]*m/g, "")
-    .replace(/[`*_#]/g, "")
-    .replace(/\s+/g, " ")
-    .slice(0, 500);  // limit TTS length
-
-  if (!lastResponse || lastResponse === lastSpokenOutput) return;
-  if (lastResponse.length < 5) return;  // skip trivial output
-
-  lastSpokenOutput = lastResponse;
-
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
-
-  const utter = new SpeechSynthesisUtterance(lastResponse);
-  utter.rate = 1.05;
-  utter.pitch = 0.95;
-  utter.volume = 0.9;
-
-  // Try to pick a good voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => /Google UK English Male|Daniel|Microsoft David/i.test(v.name))
-    || voices.find(v => /en.*(male|natural)/i.test(v.name))
-    || voices.find(v => /en/i.test(v.lang));
-  if (preferred) utter.voice = preferred;
-
-  window.speechSynthesis.speak(utter);
-}
-
-// Check for new speech on each render cycle
-const origRenderVoz = renderVoz;
-renderVoz = function() {
-  origRenderVoz();
-  if (ttsEnabled) speakNewOutput();
+    setApiKey(key);
+    document.getElementById("onboarding").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    renderAll(); toast("Connected.");
+  } catch (e) { err.textContent = "Error: " + e.message; }
 };
-
-// TTS toggle — default on
-let ttsEnabled = localStorage.getItem("voz_tts") !== "off";
-
-setupVoice();
-
-// Preload voices (Chrome needs this)
-if (window.speechSynthesis) {
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-}
-
-// ═══════════════════════════════════════════════════════
-//  Mobile bottom sheet
-// ═══════════════════════════════════════════════════════
-
-(function setupMobileSheet() {
-  const sheet = document.getElementById("agentsSidebar");
-  const handle = document.getElementById("sheetHandle");
-  const peek = document.getElementById("sheetPeek");
-  let isOpen = false;
-
-  handle.onclick = () => {
-    isOpen = !isOpen;
-    sheet.classList.toggle("sheet-open", isOpen);
-  };
-
-  // Close sheet when clicking outside on mobile
-  document.addEventListener("click", (e) => {
-    if (isOpen && window.innerWidth <= 768 && !sheet.contains(e.target)) {
-      isOpen = false;
-      sheet.classList.remove("sheet-open");
-    }
-  });
-
-  // Swipe down to close
-  let touchStartY = 0;
-  sheet.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
-  sheet.addEventListener("touchend", (e) => {
-    const dy = e.changedTouches[0].clientY - touchStartY;
-    if (dy > 60 && isOpen) {
-      isOpen = false;
-      sheet.classList.remove("sheet-open");
-    }
-  }, { passive: true });
-
-  // Update peek text on render
-  const origRenderAgents = renderAgents;
-  renderAgents = function() {
-    origRenderAgents();
-    const agents = state.sessions.filter(s => s.id !== VOZ_ID);
-    const asking = agents.filter(s => (s._parsed || {}).state === "asking").length;
-    const working = agents.filter(s => (s._parsed || {}).state === "working").length;
-    if (asking > 0) {
-      peek.textContent = `${asking} need${asking > 1 ? "" : "s"} attention`;
-      peek.style.color = "var(--accent)";
-    } else if (working > 0) {
-      peek.textContent = `${working} working`;
-      peek.style.color = "var(--yellow)";
-    } else {
-      peek.textContent = `${agents.length} agent${agents.length !== 1 ? "s" : ""}`;
-      peek.style.color = "";
-    }
-  };
-})();
+document.getElementById("apiKeyInput").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("apiKeySave").click(); };
 
 // ═══════════════════════════════════════════════════════
 //  Helpers
