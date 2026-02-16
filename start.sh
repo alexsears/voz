@@ -26,6 +26,33 @@ if [[ ! -f "${SCRIPT_DIR}/MEMORY.md" ]] && [[ -f "${SCRIPT_DIR}/memory-template.
   cp "${SCRIPT_DIR}/memory-template.md" "${SCRIPT_DIR}/MEMORY.md"
 fi
 
+# --- Resolve full path to claude.exe (Windows path for cmd.exe) ---
+CLAUDE_WIN_PATH=""
+for p in "/mnt/c/Users/${USER}/.local/bin/claude.exe" "/mnt/c/Users/asear/.local/bin/claude.exe"; do
+  if [[ -f "$p" ]]; then
+    # Convert WSL path to Windows path: /mnt/c/Users/... → C:\Users\...
+    CLAUDE_WIN_PATH="$(echo "$p" | sed 's|^/mnt/\(.\)|\U\1:|; s|/|\\|g')"
+    break
+  fi
+done
+if [[ -z "$CLAUDE_WIN_PATH" ]]; then
+  # Try which
+  local_bin="$(which claude.exe 2>/dev/null || echo "")"
+  if [[ -n "$local_bin" ]]; then
+    CLAUDE_WIN_PATH="$(echo "$local_bin" | sed 's|^/mnt/\(.\)|\U\1:|; s|/|\\|g')"
+  fi
+fi
+if [[ -z "$CLAUDE_WIN_PATH" ]]; then
+  echo "ERROR: claude.exe not found in PATH or common locations."
+  echo "       Install Claude Code CLI or set the path manually."
+  exit 1
+fi
+# Launch command: use cmd.exe to clear CLAUDECODE before running claude.exe
+# This prevents the "nested session" error when launching from within Claude Code
+CLAUDE_CMD="/mnt/c/Windows/System32/cmd.exe /c \"set CLAUDECODE= && ${CLAUDE_WIN_PATH}\""
+echo ">> Using Claude binary: $CLAUDE_WIN_PATH"
+echo ""
+
 echo ">> Starting Voz..."
 echo ""
 
@@ -43,7 +70,7 @@ for pname in "${PROJECTS[@]}"; do
     continue
   fi
   echo "   Starting claude in '$pname'..."
-  tmux send-keys -t "${SESSION}:${pname}" "claude.exe" Enter
+  tmux send-keys -t "${SESSION}:${pname}" "${CLAUDE_CMD}" Enter
   sleep 1
 done
 echo ""
@@ -62,7 +89,7 @@ echo ""
 
 # Step 4: Launch Claude Code with VoiceMode in voz window
 echo ">> Step 4: Launching Voz orchestrator (with VoiceMode)..."
-tmux send-keys -t "${SESSION}:voz" "claude.exe" Enter
+tmux send-keys -t "${SESSION}:voz" "${CLAUDE_CMD}" Enter
 echo ""
 
 echo "========================================="

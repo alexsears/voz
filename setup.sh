@@ -93,8 +93,14 @@ fi
 
 echo ">> Creating tmux session '$SESSION'..."
 
+# Strip WSLENV so Windows env vars (CLAUDECODE) don't leak into tmux panes
+unset WSLENV 2>/dev/null || true
+
+# Set tmux global env to block CLAUDECODE passthrough
 # First window is the voz control pane
 tmux new-session -d -s "$SESSION" -n "voz" -c "$SCRIPT_DIR"
+tmux set-environment -t "$SESSION" WSLENV ""
+tmux set-environment -t "$SESSION" -u CLAUDECODE 2>/dev/null || true
 
 # Create a window for each project (skip voz — it's the control pane)
 WIN_IDX=1
