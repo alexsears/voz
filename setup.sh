@@ -36,11 +36,19 @@ parse_projects() {
   done < "$CONFIG"
 }
 
-# --- Install VoiceMode MCP if needed ---
+# --- Install VoiceMode MCP for the Voz orchestrator session ---
 install_voicemode() {
-  echo ">> Checking VoiceMode MCP installation..."
-  echo "   (Skipping auto-install — configure VoiceMode MCP manually if needed)"
-  echo "   Run: claude mcp add --scope user voicemode -- uvx --refresh voice-mode"
+  echo ">> Checking VoiceMode MCP..."
+  # Check if voicemode MCP is already configured
+  if claude.exe mcp list 2>/dev/null | grep -q "voicemode"; then
+    echo "   VoiceMode MCP already configured."
+  else
+    echo "   Installing VoiceMode MCP server..."
+    claude.exe mcp add --scope user voicemode -- uvx --refresh voice-mode || {
+      echo "   WARNING: Could not auto-install VoiceMode MCP."
+      echo "   Install manually: claude mcp add --scope user voicemode -- uvx --refresh voice-mode"
+    }
+  fi
 }
 
 # --- Validate config (auto-create from example on first run) ---

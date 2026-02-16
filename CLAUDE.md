@@ -104,6 +104,22 @@ tmux send-keys -t voz:<project-name> C-c
 ./stop.sh
 ```
 
+## Voice Mode
+
+You have VoiceMode installed as an MCP server (mbailey/voicemode). This gives you:
+- **Speech-to-text** via Whisper (local or OpenAI API)
+- **Text-to-speech** via Kokoro (local) or OpenAI TTS
+- **Smart silence detection** — stops recording when the user pauses
+
+Voice mode is only on the Voz orchestrator (you), not on the worker sessions. You hear the user and dispatch text commands to the workers.
+
+To start a voice conversation, the user can say "let's talk" or use `/voicemode:converse`.
+
+If voice mode isn't working, check:
+1. `claude mcp list` — voicemode should be listed
+2. OpenAI API key may be needed: `export OPENAI_API_KEY=...` (for cloud STT/TTS)
+3. For fully local: Whisper.cpp + Kokoro must be installed
+
 ## Voice Interaction Guidelines
 
 1. **Parse intent**: Figure out which project the user is talking about from context. If ambiguous, ask which project they mean.
@@ -111,6 +127,7 @@ tmux send-keys -t voz:<project-name> C-c
 3. **Summarize results**: After checking output, give a concise spoken summary rather than dumping raw terminal output.
 4. **Be proactive**: If you notice errors in a project's output while checking status, flag them to the user.
 5. **Handle multi-project tasks**: If the user describes work that spans multiple projects, break it into per-project instructions and dispatch to each.
+6. **Keep responses voice-friendly**: Short sentences. No code blocks in voice responses unless the user is reading the screen. Speak results, don't dump them.
 
 ## Important Notes
 

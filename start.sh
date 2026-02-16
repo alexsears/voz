@@ -61,7 +61,7 @@ cd "$SCRIPT_DIR"
 echo ""
 
 # Step 4: Launch Claude Code with VoiceMode in voz window
-echo ">> Step 4: Launching Voz Claude Code (with VoiceMode)..."
+echo ">> Step 4: Launching Voz orchestrator (with VoiceMode)..."
 tmux send-keys -t "${SESSION}:voz" "claude.exe" Enter
 echo ""
 
@@ -71,6 +71,10 @@ echo "========================================="
 echo ""
 echo "  Dashboard:  http://localhost:4800"
 echo "  Attach:     tmux attach -t $SESSION"
+echo ""
+echo "  Voice:      Attach to voz window, then say:"
+echo "              \"Let's have a voice conversation\""
+echo "              or use /voicemode:converse"
 echo ""
 echo "  Quick commands:"
 echo "    Status:  $SCRIPT_DIR/status.sh"
