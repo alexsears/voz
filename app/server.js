@@ -183,6 +183,53 @@ app.post("/api/project/:name/exit", (req, res) => {
   }
 });
 
+// Restart a project's Claude (exit + relaunch)
+app.post("/api/project/:name/restart", (req, res) => {
+  if (!sessionExists()) return res.status(503).json({ error: "session not running" });
+  const name = req.params.name;
+  if (!windowExists(name))
+    return res.status(404).json({ error: `window '${name}' not found` });
+
+  // Find claude.exe path
+  let claudePath = "";
+  try {
+    claudePath = execSync(
+      wsl(`which claude.exe 2>/dev/null || echo /mnt/c/Users/*/\\.local/bin/claude.exe`),
+      execOpts
+    ).trim().split("\n")[0];
+  } catch {
+    claudePath = "/mnt/c/Users/asear/.local/bin/claude.exe";
+  }
+  const winPath = claudePath
+    .replace(/^\/mnt\/([a-z])/, (_, d) => d.toUpperCase() + ":")
+    .replace(/\//g, "\\\\");
+  const launchCmd = `/mnt/c/Windows/System32/cmd.exe /c "set CLAUDECODE= && ${winPath} --dangerously-skip-permissions"`;
+
+  try {
+    // Send Ctrl-C first to interrupt anything running
+    execSync(wsl(`tmux send-keys -t ${SESSION}:${name} C-c`), execOpts);
+    // Send /exit
+    execSync(wsl(`tmux send-keys -t ${SESSION}:${name} -l '/exit'`), execOpts);
+    execSync(wsl(`tmux send-keys -t ${SESSION}:${name} Enter`), execOpts);
+  } catch { /* may fail if not in Claude, that's ok */ }
+
+  // Wait for exit, then relaunch
+  setTimeout(() => {
+    try {
+      // Send Ctrl-C again in case we're at a bash prompt with lingering process
+      execSync(wsl(`tmux send-keys -t ${SESSION}:${name} C-c`), execOpts);
+    } catch {}
+    setTimeout(() => {
+      try {
+        execSync(wsl(`tmux send-keys -t ${SESSION}:${name} -l '${launchCmd}'`), execOpts);
+        execSync(wsl(`tmux send-keys -t ${SESSION}:${name} Enter`), execOpts);
+      } catch {}
+    }, 1000);
+  }, 3000);
+
+  res.json({ ok: true, message: `Restarting ${name}... will be ready in ~8s` });
+});
+
 // Start the full voz session
 app.post("/api/start", (_req, res) => {
   if (sessionExists()) return res.json({ ok: true, message: "already running" });

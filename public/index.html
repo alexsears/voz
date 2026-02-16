@@ -304,9 +304,120 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
 .modal__btns .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); }
 .modal__btns .create-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); border: none; color: white; }
 
+/* restart button */
+.voz__restart-btn {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; color: var(--dim); font-size: 16px; cursor: pointer;
+  display: grid; place-items: center; transition: all var(--transition);
+  font-family: var(--font);
+}
+.voz__restart-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: rgba(255,255,255,0.15); }
+.voz__restart-btn.spinning { animation: orb-spin 0.8s linear infinite; color: var(--yellow); border-color: rgba(251,191,36,0.3); }
+
+/* mic button */
+.voz__input .mic-btn {
+  width: 42px; height: 42px; border: 1px solid var(--border); border-radius: 10px;
+  background: transparent; color: var(--dim); font-size: 18px; cursor: pointer;
+  display: grid; place-items: center; transition: all var(--transition); flex-shrink: 0;
+}
+.voz__input .mic-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.voz__input .mic-btn.recording {
+  background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.4);
+  color: var(--red); animation: pulse-mic 1.5s ease infinite;
+}
+@keyframes pulse-mic { 0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); } 50% { box-shadow: 0 0 0 8px rgba(248,113,113,0.15); } }
+
+/* voice recording state for orb */
+.voz--recording .voz__orb {
+  box-shadow: 0 0 30px rgba(248,113,113,0.35), 0 0 60px rgba(248,113,113,0.12);
+  background: radial-gradient(circle at 38% 32%, var(--red), #2a0a0a 70%);
+}
+.voz--recording .voz__orb-ring { opacity: 1; border-top-color: var(--red); animation: orb-pulse 1s ease infinite; }
+
 /* Toast */
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 200; padding: 10px 24px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; box-shadow: var(--shadow); opacity: 0; transition: all 300ms ease; white-space: nowrap; }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ─── Mobile bottom sheet handle ─── */
+.mobile-agents-handle {
+  display: none;
+}
+
+/* ─── Mobile layout ─── */
+@media (max-width: 768px) {
+  :root { --agent-w: 100%; }
+
+  .app { flex-direction: column; height: 100vh; height: 100dvh; }
+
+  /* Voz takes most of the screen */
+  .voz { flex: 1; min-height: 0; }
+
+  /* hero — bigger orb, centered */
+  .voz__hero {
+    flex-direction: column; align-items: center; text-align: center;
+    padding: 20px 16px 12px; gap: 10px;
+  }
+  .voz__orb-wrap { width: 72px; height: 72px; }
+  .voz__orb { width: 72px; height: 72px; }
+  .voz__orb-ring { inset: -6px; border-width: 2.5px; }
+  .voz__identity { text-align: center; }
+  .voz__name { font-size: 24px; }
+  .voz__status { font-size: 13px; margin-top: 4px; }
+  .voz__meta { justify-content: center; gap: 8px; }
+
+  /* terminal — smaller on mobile */
+  .voz__terminal { padding: 10px 14px; font-size: 11px; flex: 1; min-height: 80px; }
+
+  /* input bar — sticky bottom feel */
+  .voz__input { padding: 10px 12px; gap: 6px; }
+  .voz__input input { height: 44px; font-size: 14px; border-radius: 22px; padding: 10px 18px; }
+  .voz__input .send-btn { width: 44px; height: 44px; border-radius: 22px; font-size: 18px; }
+  .voz__input .mic-btn { width: 44px; height: 44px; border-radius: 22px; font-size: 20px; }
+
+  /* Agents sidebar becomes a bottom sheet */
+  .agents {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    width: 100%; min-width: 100%;
+    height: 70vh; max-height: 70vh;
+    border-left: none; border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    transform: translateY(calc(100% - 40px));
+    transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
+    z-index: 30;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+  }
+  .agents.sheet-open { transform: translateY(0); }
+
+  /* Pull handle */
+  .mobile-agents-handle {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 0 6px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mobile-agents-handle__bar {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.15);
+  }
+  .mobile-agents-handle__peek {
+    position: absolute; top: 10px; right: 16px;
+    font-size: 10px; color: var(--muted); font-weight: 600;
+  }
+
+  .agents__header { padding: 8px 16px; }
+  .agents__list { padding: 6px 10px; }
+
+  /* away banner */
+  .voz__away { font-size: 10px; padding: 5px 14px; }
+
+  /* Toast repositioned above the bottom sheet handle */
+  .toast { bottom: 56px; }
+
+  /* Modals */
+  .modal { width: calc(100vw - 32px); max-width: 420px; padding: 20px; }
+
+  /* Onboarding */
+  .onboarding__card { padding: 32px 20px; margin: 0 16px; }
+}
   </style>
 </head>
 <body>
@@ -344,6 +455,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
           <div class="voz__autopilot-dot"></div>
           <span>Auto-pilot</span>
         </button>
+        <button class="voz__restart-btn" id="restartBtn" title="Restart Voz (picks up new MCP servers)">&#8635;</button>
         <div class="voz__badge" id="modeBadge"></div>
       </div>
     </div>
@@ -354,13 +466,18 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
     </div>
     <div class="voz__terminal" id="vozTerminal"><span style="color:var(--dim)">Connecting...</span></div>
     <div class="voz__input">
+      <button class="mic-btn" id="micBtn" title="Hold to talk (or click to toggle)">&#127908;</button>
       <input type="text" id="vozInput" placeholder="Talk to Voz..." />
       <button class="send-btn" id="vozSend">&#9654;</button>
     </div>
   </div>
 
-  <!-- Agents sidebar -->
-  <aside class="agents">
+  <!-- Agents sidebar / mobile bottom sheet -->
+  <aside class="agents" id="agentsSidebar">
+    <div class="mobile-agents-handle" id="sheetHandle">
+      <div class="mobile-agents-handle__bar"></div>
+      <div class="mobile-agents-handle__peek" id="sheetPeek">0 agents</div>
+    </div>
     <div class="agents__header">
       <div class="agents__title">Agents</div>
       <div class="agents__count" id="agentCount">0</div>
@@ -1091,6 +1208,234 @@ document.onkeydown = (e) => {
 };
 document.getElementById("addModal").onclick = (e) => { if (e.target.id === "addModal") e.target.classList.add("hidden"); };
 document.getElementById("settingsModal").onclick = (e) => { if (e.target.id === "settingsModal") e.target.classList.add("hidden"); };
+
+// ═══════════════════════════════════════════════════════
+//  Restart button
+// ═══════════════════════════════════════════════════════
+
+document.getElementById("restartBtn").onclick = async () => {
+  const btn = document.getElementById("restartBtn");
+  btn.classList.add("spinning");
+  toast("Restarting Voz...");
+  await localApi("/api/project/voz/restart", { method: "POST" });
+  // Poll for restart completion
+  setTimeout(() => { btn.classList.remove("spinning"); toast("Voz restarting — ready in ~8s"); }, 8000);
+  setTimeout(localRefresh, 5000);
+  setTimeout(localRefresh, 10000);
+  setTimeout(localRefresh, 15000);
+};
+
+// ═══════════════════════════════════════════════════════
+//  Voice — Speech-to-Text & Text-to-Speech
+// ═══════════════════════════════════════════════════════
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isRecording = false;
+let lastSpokenOutput = "";  // track what we've already spoken
+
+function setupVoice() {
+  const micBtn = document.getElementById("micBtn");
+  const vozMain = document.getElementById("vozMain");
+
+  if (!SpeechRecognition) {
+    micBtn.title = "Speech recognition not supported in this browser";
+    micBtn.style.opacity = "0.3";
+    micBtn.style.cursor = "default";
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    isRecording = true;
+    micBtn.classList.add("recording");
+    vozMain.classList.add("voz--recording");
+    document.getElementById("vozInput").placeholder = "Listening...";
+  };
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results)
+      .map(r => r[0].transcript)
+      .join("");
+    document.getElementById("vozInput").value = transcript;
+
+    // Auto-send on final result
+    if (e.results[e.results.length - 1].isFinal) {
+      stopRecording();
+      if (transcript.trim()) {
+        document.getElementById("vozSend").click();
+      }
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.warn("[voice] Recognition error:", e.error);
+    stopRecording();
+    if (e.error === "no-speech") {
+      toast("No speech detected — try again");
+    } else if (e.error !== "aborted") {
+      toast("Mic error: " + e.error);
+    }
+  };
+
+  recognition.onend = () => {
+    stopRecording();
+  };
+
+  // Click to toggle recording
+  micBtn.onclick = () => {
+    if (isRecording) {
+      recognition.abort();
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+}
+
+function startRecording() {
+  if (!recognition || isRecording) return;
+  try {
+    recognition.start();
+  } catch (e) {
+    console.warn("[voice] Start failed:", e);
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  const micBtn = document.getElementById("micBtn");
+  const vozMain = document.getElementById("vozMain");
+  micBtn.classList.remove("recording");
+  vozMain.classList.remove("voz--recording");
+  document.getElementById("vozInput").placeholder = "Talk to Voz...";
+}
+
+// TTS — speak new Voz responses
+function speakNewOutput() {
+  if (!window.speechSynthesis) return;
+  const voz = state.sessions.find(s => s.id === VOZ_ID);
+  if (!voz || !voz.output) return;
+
+  const cs = voz._parsed || parseClaudeState(voz.output);
+  // Only speak when idle (just finished responding) — not while working
+  if (cs.state !== "idle" && cs.state !== "asking") return;
+
+  // Extract the last Claude response block
+  const lines = voz.output.split("\n");
+  const claudeLines = [];
+  let inResp = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (/^\u23bf/.test(t)) { inResp = true; claudeLines.length = 0; claudeLines.push(t.replace(/^\u23bf\s*/, "")); }
+    else if (/^\u276f/.test(t)) { inResp = false; }
+    else if (inResp) claudeLines.push(t);
+  }
+
+  const lastResponse = claudeLines.join(" ").trim()
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/[`*_#]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 500);  // limit TTS length
+
+  if (!lastResponse || lastResponse === lastSpokenOutput) return;
+  if (lastResponse.length < 5) return;  // skip trivial output
+
+  lastSpokenOutput = lastResponse;
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(lastResponse);
+  utter.rate = 1.05;
+  utter.pitch = 0.95;
+  utter.volume = 0.9;
+
+  // Try to pick a good voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => /Google UK English Male|Daniel|Microsoft David/i.test(v.name))
+    || voices.find(v => /en.*(male|natural)/i.test(v.name))
+    || voices.find(v => /en/i.test(v.lang));
+  if (preferred) utter.voice = preferred;
+
+  window.speechSynthesis.speak(utter);
+}
+
+// Check for new speech on each render cycle
+const origRenderVoz = renderVoz;
+renderVoz = function() {
+  origRenderVoz();
+  if (ttsEnabled) speakNewOutput();
+};
+
+// TTS toggle — default on
+let ttsEnabled = localStorage.getItem("voz_tts") !== "off";
+
+setupVoice();
+
+// Preload voices (Chrome needs this)
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+// ═══════════════════════════════════════════════════════
+//  Mobile bottom sheet
+// ═══════════════════════════════════════════════════════
+
+(function setupMobileSheet() {
+  const sheet = document.getElementById("agentsSidebar");
+  const handle = document.getElementById("sheetHandle");
+  const peek = document.getElementById("sheetPeek");
+  let isOpen = false;
+
+  handle.onclick = () => {
+    isOpen = !isOpen;
+    sheet.classList.toggle("sheet-open", isOpen);
+  };
+
+  // Close sheet when clicking outside on mobile
+  document.addEventListener("click", (e) => {
+    if (isOpen && window.innerWidth <= 768 && !sheet.contains(e.target)) {
+      isOpen = false;
+      sheet.classList.remove("sheet-open");
+    }
+  });
+
+  // Swipe down to close
+  let touchStartY = 0;
+  sheet.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  sheet.addEventListener("touchend", (e) => {
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (dy > 60 && isOpen) {
+      isOpen = false;
+      sheet.classList.remove("sheet-open");
+    }
+  }, { passive: true });
+
+  // Update peek text on render
+  const origRenderAgents = renderAgents;
+  renderAgents = function() {
+    origRenderAgents();
+    const agents = state.sessions.filter(s => s.id !== VOZ_ID);
+    const asking = agents.filter(s => (s._parsed || {}).state === "asking").length;
+    const working = agents.filter(s => (s._parsed || {}).state === "working").length;
+    if (asking > 0) {
+      peek.textContent = `${asking} need${asking > 1 ? "" : "s"} attention`;
+      peek.style.color = "var(--accent)";
+    } else if (working > 0) {
+      peek.textContent = `${working} working`;
+      peek.style.color = "var(--yellow)";
+    } else {
+      peek.textContent = `${agents.length} agent${agents.length !== 1 ? "s" : ""}`;
+      peek.style.color = "";
+    }
+  };
+})();
 
 // ═══════════════════════════════════════════════════════
 //  Helpers
