@@ -342,6 +342,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
   <div class="topbar">
     <div class="topbar__name">Voz</div>
     <div class="topbar__spacer"></div>
+    <button class="topbar__ap" id="wakeBtn" title="Wake word: say 'Hey Voz'">
+      <div class="topbar__ap-dot"></div>
+      <span>MIC</span>
+    </button>
     <button class="topbar__ap" id="autopilotBtn" title="Auto-pilot">
       <div class="topbar__ap-dot"></div>
       <span>AP</span>
@@ -717,6 +721,7 @@ async function localDispatch(name, message) {
 function renderAll() {
   renderStage();
   renderAgentPills();
+  checkForPing();
   if (termDrawerOpen) renderTerminal();
 }
 
@@ -908,15 +913,102 @@ function showTranscript(text) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  Voice — The orb IS the mic
+//  Notification ping (AudioContext-generated)
+// ═══════════════════════════════════════════════════════
+
+let audioCtx = null;
+let lastNotifiedState = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playPing(type = "done") {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === "suspended") ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "done") {
+      // Two-tone ascending chime: task complete
+      osc.frequency.setValueAtTime(587, ctx.currentTime);       // D5
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    } else if (type === "attention") {
+      // Three-note pattern: needs your attention
+      osc.frequency.setValueAtTime(523, ctx.currentTime);       // C5
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1); // E5
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2); // G5
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.45);
+    } else if (type === "wake") {
+      // Quick beep: wake word detected
+      osc.frequency.setValueAtTime(1047, ctx.currentTime);      // C6
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.15);
+    }
+  } catch {}
+}
+
+// Check for state transitions that deserve a ping
+function checkForPing() {
+  const voz = state.sessions.find(s => s.id === VOZ_ID);
+  if (!voz) return;
+  const cs = voz._parsed || parseClaudeState(voz.output);
+  const newState = cs.state;
+
+  if (lastNotifiedState && lastNotifiedState !== newState) {
+    // Was working, now idle = task done
+    if (lastNotifiedState === "working" && (newState === "idle" || newState === "ready")) {
+      playPing("done");
+    }
+    // Now asking = needs attention
+    if (newState === "asking") {
+      playPing("attention");
+    }
+  }
+  lastNotifiedState = newState;
+
+  // Also check agents
+  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
+  for (const a of agents) {
+    const acs = a._parsed || parseClaudeState(a.output);
+    const key = "agent_notified_" + a.id;
+    if (acs.state === "asking" && !a[key]) {
+      playPing("attention");
+      a[key] = true;
+    } else if (acs.state !== "asking") {
+      a[key] = false;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Voice — The orb IS the mic + wake word
 // ═══════════════════════════════════════════════════════
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+let wakeRecognition = null;
 let isRecording = false;
+let isWakeListening = false;
 let isSpeaking = false;
 let lastSpokenOutput = "";
 let ttsEnabled = localStorage.getItem("voz_tts") !== "off";
+let wakeWordEnabled = localStorage.getItem("voz_wake") === "on";
+const WAKE_PHRASES = ["hey voz", "hey boss", "ok voz", "yo voz", "a voz", "hey boz", "hey vos"];
 
 function setupVoice() {
   const orbArea = document.getElementById("orbArea");
@@ -927,6 +1019,7 @@ function setupVoice() {
     return;
   }
 
+  // === Active recording recognition ===
   recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = true;
@@ -944,7 +1037,6 @@ function setupVoice() {
     if (e.results[e.results.length - 1].isFinal) {
       stopRecording();
       if (transcript.trim()) {
-        // Send it
         document.getElementById("statusLabel").textContent = "Sending...";
         document.getElementById("stage").className = "stage stage--working";
         if (MODE === "local") localDispatch(VOZ_ID, transcript.trim());
@@ -954,16 +1046,28 @@ function setupVoice() {
 
   recognition.onerror = (e) => {
     stopRecording();
-    if (e.error === "no-speech") toast("No speech detected");
+    if (e.error === "no-speech") { /* silent */ }
     else if (e.error !== "aborted") toast("Mic error: " + e.error);
   };
 
-  recognition.onend = () => stopRecording();
+  recognition.onend = () => {
+    if (isRecording) {
+      isRecording = false;
+      renderAll();
+    }
+    // Restart wake word listening if enabled
+    if (wakeWordEnabled && !isRecording) {
+      setTimeout(startWakeWordListening, 500);
+    }
+  };
 
   // Tap orb to start/stop
   orbArea.onclick = () => {
+    // Unlock AudioContext on first interaction
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    if (!audioCtx) getAudioCtx();
+
     if (isSpeaking) {
-      // Interrupt TTS
       window.speechSynthesis.cancel();
       isSpeaking = false;
       renderAll();
@@ -973,19 +1077,102 @@ function setupVoice() {
       recognition.abort();
       stopRecording();
     } else {
+      // Stop wake word listener before starting active recording
+      stopWakeWordListening();
       startRecording();
     }
   };
+
+  // Start wake word if enabled
+  if (wakeWordEnabled) {
+    // Need a user gesture first — start on first click anywhere
+    const startWake = () => {
+      document.removeEventListener("click", startWake);
+      startWakeWordListening();
+    };
+    document.addEventListener("click", startWake);
+  }
 }
 
 function startRecording() {
   if (!recognition || isRecording) return;
+  stopWakeWordListening();
   try { recognition.start(); } catch {}
 }
 
 function stopRecording() {
   isRecording = false;
   renderAll();
+}
+
+// === Wake word (continuous background listener) ===
+function startWakeWordListening() {
+  if (!SpeechRecognition || isRecording || isSpeaking || isWakeListening) return;
+
+  wakeRecognition = new SpeechRecognition();
+  wakeRecognition.continuous = true;
+  wakeRecognition.interimResults = true;
+  wakeRecognition.lang = "en-US";
+
+  wakeRecognition.onstart = () => {
+    isWakeListening = true;
+    document.getElementById("statusHint").textContent = "Listening for \"Hey Voz\"...";
+  };
+
+  wakeRecognition.onresult = (e) => {
+    // Check recent results for wake phrase
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const text = e.results[i][0].transcript.toLowerCase().trim();
+      const isWake = WAKE_PHRASES.some(w => text.includes(w));
+      if (isWake) {
+        // Wake word detected!
+        playPing("wake");
+        stopWakeWordListening();
+        // Small delay then start active recording
+        setTimeout(() => startRecording(), 300);
+        return;
+      }
+    }
+  };
+
+  wakeRecognition.onerror = (e) => {
+    isWakeListening = false;
+    // Restart after errors (except abort)
+    if (e.error !== "aborted" && wakeWordEnabled) {
+      setTimeout(startWakeWordListening, 2000);
+    }
+  };
+
+  wakeRecognition.onend = () => {
+    isWakeListening = false;
+    // Auto-restart if wake word mode is still on
+    if (wakeWordEnabled && !isRecording && !isSpeaking) {
+      setTimeout(startWakeWordListening, 500);
+    }
+  };
+
+  try { wakeRecognition.start(); } catch {}
+}
+
+function stopWakeWordListening() {
+  if (wakeRecognition) {
+    try { wakeRecognition.abort(); } catch {}
+    isWakeListening = false;
+  }
+}
+
+function toggleWakeWord() {
+  wakeWordEnabled = !wakeWordEnabled;
+  localStorage.setItem("voz_wake", wakeWordEnabled ? "on" : "off");
+  if (wakeWordEnabled) {
+    startWakeWordListening();
+    toast("Wake word on — say \"Hey Voz\"");
+  } else {
+    stopWakeWordListening();
+    document.getElementById("statusHint").textContent = "Tap the orb to talk";
+    toast("Wake word off");
+  }
+  updateWakeUI();
 }
 
 // TTS
@@ -1015,6 +1202,9 @@ function speakNewOutput() {
   if (!lastResponse || lastResponse === lastSpokenOutput || lastResponse.length < 5) return;
   lastSpokenOutput = lastResponse;
 
+  // Stop wake word while speaking
+  stopWakeWordListening();
+
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(lastResponse);
   utter.rate = 1.05; utter.pitch = 0.95; utter.volume = 0.9;
@@ -1026,7 +1216,12 @@ function speakNewOutput() {
   if (preferred) utter.voice = preferred;
 
   utter.onstart = () => { isSpeaking = true; renderAll(); };
-  utter.onend = () => { isSpeaking = false; renderAll(); };
+  utter.onend = () => {
+    isSpeaking = false;
+    renderAll();
+    // Resume wake word listening after speaking
+    if (wakeWordEnabled) setTimeout(startWakeWordListening, 500);
+  };
   utter.onerror = () => { isSpeaking = false; };
 
   window.speechSynthesis.speak(utter);
@@ -1042,6 +1237,14 @@ if (window.speechSynthesis) {
 // ═══════════════════════════════════════════════════════
 //  Topbar buttons
 // ═══════════════════════════════════════════════════════
+
+// Wake word toggle
+function updateWakeUI() {
+  const btn = document.getElementById("wakeBtn");
+  btn.className = "topbar__ap" + (wakeWordEnabled ? " on" : "");
+}
+document.getElementById("wakeBtn").onclick = () => toggleWakeWord();
+updateWakeUI();
 
 // Auto-pilot toggle
 function updateAutopilotUI() {
