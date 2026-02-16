@@ -49,7 +49,7 @@ if [[ -z "$CLAUDE_WIN_PATH" ]]; then
 fi
 # Launch command: use cmd.exe to clear CLAUDECODE before running claude.exe
 # This prevents the "nested session" error when launching from within Claude Code
-CLAUDE_CMD="/mnt/c/Windows/System32/cmd.exe /c \"set CLAUDECODE= && ${CLAUDE_WIN_PATH}\""
+CLAUDE_CMD="/mnt/c/Windows/System32/cmd.exe /c \"set CLAUDECODE= && ${CLAUDE_WIN_PATH} --dangerously-skip-permissions\""
 echo ">> Using Claude binary: $CLAUDE_WIN_PATH"
 echo ""
 

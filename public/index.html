@@ -547,10 +547,16 @@ async function init() {
     label.className = "sidebar__mode local";
     document.getElementById("localStatus").classList.remove("hidden");
     document.getElementById("addSessionBtn").classList.add("hidden");
-    document.getElementById("changeKeyBtn").querySelector("span").nextSibling.textContent = " Refresh";
+    try { document.getElementById("changeKeyBtn").innerHTML = "<span>&#8635;</span> Refresh"; } catch {}
     document.getElementById("changeKeyBtn").onclick = () => localRefresh();
     showApp();
-    localRefresh();
+    await localRefresh();
+    // Auto-open first session panel if none are open
+    if (activePanels.length === 0 && state.sessions.length > 0) {
+      activePanels.push(state.sessions[0].id);
+      renderSidebar();
+      renderPanels();
+    }
     autoRefreshTimer = setInterval(localRefresh, 5000);
   } else {
     label.textContent = "Cloud";
