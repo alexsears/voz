@@ -116,6 +116,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
 }
 .sb-item:hover { background: rgba(255,255,255,0.04); }
 .sb-item.open { background: rgba(124,92,255,0.12); border-color: var(--border-active); }
+.sb-item.orch { border-left: 2px solid var(--accent); }
 .sb-item__dot {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
   background: rgba(255,255,255,0.15);
@@ -458,7 +459,7 @@ async function localRefresh() {
   else { dot.className = "sb__dot off"; text.textContent = "Stopped"; }
 
   if (data.projects) {
-    const projects = data.projects.filter(p => p.name !== "voz");
+    const projects = data.projects;
     for (const lp of projects) {
       const sid = "local-" + lp.name;
       const existing = state.sessions.find(s => s.id === sid);
@@ -614,13 +615,14 @@ function renderSidebar() {
 
   state.sessions.forEach(s => {
     const el = document.createElement("div");
-    el.className = "sb-item" + (openPanels.includes(s.id) ? " open" : "");
+    const isOrch = s.name === "voz";
+    el.className = "sb-item" + (openPanels.includes(s.id) ? " open" : "") + (isOrch ? " orch" : "");
     const dc = dotClass(s);
     el.innerHTML = `
       <div class="sb-item__dot ${dc}"></div>
       <div class="sb-item__info">
-        <div class="sb-item__name">${esc(s.name)}</div>
-        ${s.desc ? `<div class="sb-item__desc">${esc(s.desc)}</div>` : ""}
+        <div class="sb-item__name">${isOrch ? "&#x1f399; " : ""}${esc(s.name)}</div>
+        ${isOrch ? `<div class="sb-item__desc">orchestrator &middot; voicemode</div>` : s.desc ? `<div class="sb-item__desc">${esc(s.desc)}</div>` : ""}
       </div>
     `;
     el.onclick = () => togglePanel(s.id);
