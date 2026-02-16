@@ -616,8 +616,12 @@ async function localDispatch(name, message) {
   const r = await localApi(`/api/project/${realName}/dispatch`, {
     method: "POST", body: JSON.stringify({ message }),
   });
-  if (r.ok) { toast("Sent to " + realName); setTimeout(localRefresh, 2000); }
-  else toast("Error: " + (r.error || "failed"));
+  if (r.ok) {
+    if (name !== VOZ_ID) toast("Sent to " + realName);
+    setTimeout(localRefresh, 2000);
+  } else {
+    toast("Error: " + (r.error || "failed"));
+  }
 }
 
 async function localStopProject(name) {
@@ -798,14 +802,25 @@ function agentSend(sid) {
 function setupVozInput() {
   const input = document.getElementById("vozInput");
   const btn = document.getElementById("vozSend");
-  const doSend = () => {
+  const doSend = async () => {
     const msg = input.value.trim();
     if (!msg) return;
     input.value = "";
+    // Immediate visual feedback
+    const statusEl = document.getElementById("vozStatus");
+    statusEl.textContent = "Sending: " + msg;
+    document.getElementById("vozMain").className = "voz voz--working";
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
     if (MODE === "local") {
-      localDispatch(VOZ_ID, msg);
+      await localDispatch(VOZ_ID, msg);
+      // Quick refresh to show the message in the terminal
+      setTimeout(localRefresh, 500);
+      setTimeout(localRefresh, 2000);
+      setTimeout(localRefresh, 4000);
     }
-    // Cloud mode Voz chat could go here
+    btn.disabled = false;
+    btn.style.opacity = "";
   };
   btn.onclick = doSend;
   input.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
