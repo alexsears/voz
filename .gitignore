@@ -6,3 +6,4 @@ MEMORY.md
 app/dashboard.log
 app/.dashboard.pid
 node_modules/
+.vercel/

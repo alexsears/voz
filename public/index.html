@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voz — Voice-Controlled Claude Code Orchestrator</title>
+  <meta name="description" content="Talk to one Claude Code instance and have it delegate tasks to many. Voice-first orchestration for multi-project development." />
+  <style>
+:root {
+  --bg: #0b1020;
+  --panel: #0f1730;
+  --panel-2: #0c1328;
+  --text: #e8ecff;
+  --muted: rgba(232, 236, 255, 0.65);
+  --accent: #7c5cff;
+  --accent-2: #2fe6c5;
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 12px 40px rgba(0,0,0,0.35);
+  --radius: 14px;
+  --transition: 220ms cubic-bezier(.2,.8,.2,1);
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --terminal-bg: #060d1a;
+  --terminal-font: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; scroll-behavior: smooth; }
+body {
+  min-height: 100%;
+  background: radial-gradient(ellipse 900px 500px at 20% 0%, rgba(124,92,255,0.15), transparent 60%),
+              radial-gradient(ellipse 900px 500px at 80% 100%, rgba(47,230,197,0.08), transparent 60%),
+              var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+/* --- Hero --- */
+.hero {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 80px 24px 40px;
+  text-align: center;
+}
+.hero__logo {
+  width: 80px; height: 80px;
+  margin: 0 auto 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #071022;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 28px;
+  box-shadow: 0 8px 32px rgba(124,92,255,0.3);
+}
+.hero h1 {
+  font-size: 48px; font-weight: 800;
+  background: linear-gradient(135deg, var(--text), var(--accent-2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero__sub {
+  font-size: 18px; color: var(--muted);
+  margin-top: 12px; line-height: 1.6;
+}
+.hero__cta {
+  margin-top: 32px;
+  display: flex; gap: 12px;
+  justify-content: center; flex-wrap: wrap;
+}
+.btn {
+  appearance: none; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04); color: var(--text);
+  padding: 12px 24px; border-radius: 12px; cursor: pointer;
+  font-size: 15px; font-family: var(--font); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all var(--transition); text-decoration: none;
+}
+.btn:hover { background: rgba(124,92,255,0.15); border-color: rgba(124,92,255,0.4); }
+.btn:active { transform: scale(0.96); }
+.btn.primary { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); border-color: rgba(124,92,255,0.5); color: white; }
+.btn.primary:hover { box-shadow: 0 4px 20px rgba(124,92,255,0.4); }
+
+/* --- Demo Section --- */
+.demo {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+}
+.demo__label {
+  text-align: center;
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accent-2); margin-bottom: 16px;
+}
+
+/* --- Dashboard Preview --- */
+.preview {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.preview__topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.2);
+}
+.preview__dot { width: 10px; height: 10px; border-radius: 50%; }
+.preview__dots { display: flex; gap: 6px; }
+.preview__title { font-weight: 650; font-size: 14px; margin-left: 8px; }
+.preview__status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.preview__status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+.preview__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.pcard {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pcard__header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.pcard__dot { width: 8px; height: 8px; border-radius: 50%; }
+.pcard__dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.pcard__name { font-weight: 650; }
+.pcard__desc { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+.pcard__term {
+  background: var(--terminal-bg);
+  font-family: var(--terminal-font);
+  font-size: 11px; line-height: 1.5;
+  color: #708090;
+  padding: 10px 12px;
+  height: 140px;
+  overflow: hidden;
+}
+.pcard__term .g { color: var(--accent-2); }
+.pcard__term .p { color: var(--accent); }
+.pcard__term .w { color: var(--text); opacity: 0.8; }
+
+.pcard__input {
+  display: flex;
+  border-top: 1px solid var(--border);
+}
+.pcard__input input {
+  flex: 1;
+  background: rgba(0,0,0,0.15);
+  border: none; outline: none;
+  color: var(--muted);
+  font-family: var(--terminal-font);
+  font-size: 12px;
+  padding: 8px 12px;
+}
+.pcard__input span {
+  background: rgba(124,92,255,0.15);
+  color: var(--accent);
+  padding: 8px 14px;
+  font-size: 12px; font-weight: 600;
+}
+
+/* --- Features --- */
+.features {
+  max-width: 900px;
+  margin: 40px auto 0;
+  padding: 0 24px 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.feature {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.feature__icon { font-size: 24px; margin-bottom: 12px; }
+.feature__title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.feature__desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* --- Quickstart --- */
+.quickstart {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+.quickstart h2 {
+  font-size: 28px; font-weight: 700;
+  text-align: center; margin-bottom: 24px;
+}
+.quickstart__code {
+  background: var(--terminal-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-family: var(--terminal-font);
+  font-size: 13px;
+  line-height: 1.8;
+  color: #a0aec0;
+  overflow-x: auto;
+}
+.quickstart__code .comment { color: rgba(255,255,255,0.25); }
+.quickstart__code .cmd { color: var(--accent-2); }
+.quickstart__code .str { color: var(--accent); }
+
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+.footer a { color: var(--accent-2); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+@media (max-width: 560px) {
+  .hero { padding: 48px 16px 24px; }
+  .hero h1 { font-size: 32px; }
+  .preview__grid { grid-template-columns: 1fr; }
+  .features { grid-template-columns: 1fr; }
+}
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero__logo">V</div>
+  <h1>Voz</h1>
+  <p class="hero__sub">Talk to one Claude Code instance.<br>Have it delegate tasks to many.</p>
+  <div class="hero__cta">
+    <a class="btn primary" href="https://github.com/alexsears/voz">Get Started</a>
+    <a class="btn" href="#demo">See How It Works</a>
+  </div>
+</section>
+
+<section class="demo" id="demo">
+  <div class="demo__label">Live Dashboard Preview</div>
+  <div class="preview">
+    <div class="preview__topbar">
+      <div class="preview__dots">
+        <div class="preview__dot" style="background:#ff5f57"></div>
+        <div class="preview__dot" style="background:#febc2e"></div>
+        <div class="preview__dot" style="background:#28c840"></div>
+      </div>
+      <div class="preview__title">Voz Dashboard</div>
+      <div class="preview__status"><span class="dot"></span> Session active</div>
+    </div>
+    <div class="preview__grid">
+      <div class="pcard">
+        <div class="pcard__header">
+          <span class="pcard__dot on"></span>
+          <span class="pcard__name">my-api</span>
+          <span class="pcard__desc">REST backend service</span>
+        </div>
+        <div class="pcard__term">
+<span class="g">&gt;</span> <span class="w">Added /health endpoint at src/routes/health.ts</span>
+<span class="g">&gt;</span> <span class="w">Created health check middleware</span>
+<span class="g">&gt;</span> <span class="w">Updated route registry</span>
+<span class="p">  Tests: 24 passed, 0 failed</span>
+<span class="g">&gt;</span> <span class="w">Committed: "feat: add health endpoint"</span>
+<span class="g">&gt;</span> <span class="w">Updated MEMORY.md</span>
+
+<span class="g">Ready for next task.</span>
+        </div>
+        <div class="pcard__input">
+          <input type="text" value="Add rate limiting to /api/users" disabled />
+          <span>Send</span>
+        </div>
+      </div>
+      <div class="pcard">
+        <div class="pcard__header">
+          <span class="pcard__dot on"></span>
+          <span class="pcard__name">my-app</span>
+          <span class="pcard__desc">React frontend</span>
+        </div>
+        <div class="pcard__term">
+<span class="g">&gt;</span> <span class="w">Reading MEMORY.md...</span>
+<span class="g">&gt;</span> <span class="w">Creating LoginForm component</span>
+<span class="p">  src/components/LoginForm.tsx</span>
+<span class="p">  src/hooks/useAuth.ts</span>
+<span class="g">&gt;</span> <span class="w">Added form validation</span>
+<span class="g">&gt;</span> <span class="w">Connected to auth API</span>
+
+<span class="g">Working on error states...</span>
+        </div>
+        <div class="pcard__input">
+          <input type="text" placeholder="Send a command to my-app..." disabled />
+          <span>Send</span>
+        </div>
+      </div>
+      <div class="pcard">
+        <div class="pcard__header">
+          <span class="pcard__dot on"></span>
+          <span class="pcard__name">my-docs</span>
+          <span class="pcard__desc">Documentation site</span>
+        </div>
+        <div class="pcard__term">
+<span class="g">&gt;</span> <span class="w">Generated API reference from OpenAPI spec</span>
+<span class="g">&gt;</span> <span class="w">Added authentication guide</span>
+<span class="p">  docs/auth.md - 142 lines</span>
+<span class="p">  docs/api-reference.md - 380 lines</span>
+<span class="g">&gt;</span> <span class="w">Committed: "docs: add auth guide + API ref"</span>
+
+<span class="g">Ready for next task.</span>
+        </div>
+        <div class="pcard__input">
+          <input type="text" placeholder="Send a command to my-docs..." disabled />
+          <span>Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <div class="feature__icon">&#127908;</div>
+    <div class="feature__title">Voice-First</div>
+    <div class="feature__desc">Talk to Voz naturally. Say "tell my-api to add a health endpoint" and it dispatches the task to the right Claude instance.</div>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">&#128640;</div>
+    <div class="feature__title">Parallel Execution</div>
+    <div class="feature__desc">Multiple Claude Code instances work on different projects simultaneously. Each in its own tmux pane with full context.</div>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">&#129504;</div>
+    <div class="feature__title">Persistent Memory</div>
+    <div class="feature__desc">Every session automatically saves important decisions, patterns, and context to MEMORY.md. Nothing gets forgotten between sessions.</div>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">&#128196;</div>
+    <div class="feature__title">Zero Config</div>
+    <div class="feature__desc">Just talk to Voz. Say "I have a project called my-app at ~/code/my-app" and it sets up everything — tmux window, memory, CLAUDE.md.</div>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">&#128421;</div>
+    <div class="feature__title">Web Dashboard</div>
+    <div class="feature__desc">Live terminal output from every project. Send commands, check status, start and stop sessions — all from one page.</div>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">&#128274;</div>
+    <div class="feature__title">Runs Locally</div>
+    <div class="feature__desc">Everything runs on your machine. Your code never leaves your computer. Just tmux, Node.js, and Claude Code CLI.</div>
+  </div>
+</section>
+
+<section class="quickstart">
+  <h2>Get Started in 30 Seconds</h2>
+  <div class="quickstart__code">
+<span class="comment"># Clone and install</span>
+<span class="cmd">git clone</span> https://github.com/alexsears/voz.git
+<span class="cmd">cd</span> voz/app && <span class="cmd">npm install</span> && <span class="cmd">cd</span> ..
+
+<span class="comment"># Start Voz</span>
+<span class="cmd">./start.sh</span>
+
+<span class="comment"># Then just talk:</span>
+<span class="str">"Add project my-api at ~/code/my-api — it's a REST backend"</span>
+<span class="str">"Tell my-api to add a health endpoint"</span>
+<span class="str">"How's my-api doing?"</span>
+<span class="str">"Status of all projects"</span>
+  </div>
+</section>
+
+<footer class="footer">
+  <a href="https://github.com/alexsears/voz">GitHub</a> &middot; Built with Claude Code
+</footer>
+
+</body>
+</html>
