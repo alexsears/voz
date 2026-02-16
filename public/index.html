@@ -3,302 +3,292 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Voz — AI Orchestrator</title>
+  <title>Voz</title>
   <style>
 :root {
-  --bg: #0b1020;
-  --panel: #0f1730;
-  --panel-2: #0c1328;
-  --text: #e8ecff;
-  --muted: rgba(232, 236, 255, 0.65);
+  --bg: #070b16;
+  --panel: #0c1226;
+  --panel-2: #0a0f20;
+  --surface: #111a33;
+  --text: #e4e8f7;
+  --muted: rgba(228, 232, 247, 0.55);
+  --dim: rgba(228, 232, 247, 0.25);
   --accent: #7c5cff;
+  --accent-glow: rgba(124, 92, 255, 0.35);
   --accent-2: #2fe6c5;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(124, 92, 255, 0.4);
-  --shadow: 0 12px 40px rgba(0,0,0,0.35);
+  --border: rgba(255, 255, 255, 0.06);
+  --shadow: 0 12px 40px rgba(0,0,0,0.5);
   --radius: 14px;
   --transition: 220ms cubic-bezier(.2,.8,.2,1);
-  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+  --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
   --green: #34d399;
   --red: #f87171;
   --yellow: #fbbf24;
-  --terminal-bg: #060d1a;
-  --terminal-font: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-  --sb-w: 240px;
+  --blue: #60a5fa;
+  --terminal-bg: #050a14;
+  --agent-w: 260px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
-body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); }
 
-/* ── Onboarding (cloud) ── */
+/* ─── Onboarding (cloud mode) ─── */
 .onboarding { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; }
 .onboarding.hidden { display: none; }
-.onboarding__card { max-width: 460px; width: 100%; padding: 48px 36px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); text-align: center; }
-.onboarding__logo { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #071022; display: grid; place-items: center; font-weight: 800; font-size: 24px; }
-.onboarding h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, var(--text), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.onboarding p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+.onboarding__card { max-width: 440px; width: 100%; padding: 48px 36px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); text-align: center; }
+.onboarding__orb { width: 72px; height: 72px; margin: 0 auto 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--accent), #1a0a40); box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(124,92,255,0.15); }
+.onboarding h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.onboarding p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
 .onboarding__input { display: flex; gap: 8px; }
-.onboarding__input input { flex: 1; padding: 12px 16px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--terminal-font); font-size: 13px; outline: none; }
+.onboarding__input input { flex: 1; padding: 12px 16px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; }
 .onboarding__input input:focus { border-color: var(--accent); }
-.onboarding__input button { padding: 12px 20px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); color: white; font-weight: 700; font-size: 14px; cursor: pointer; }
+.onboarding__input button { padding: 12px 24px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); color: white; font-weight: 700; font-size: 14px; cursor: pointer; }
 .onboarding__err { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
 .onboarding__hint { margin-top: 20px; font-size: 11px; color: var(--muted); opacity: 0.6; line-height: 1.5; }
 
-/* ── App shell ── */
-.app { display: flex; height: 100%; }
+/* ─── App shell ─── */
+.app { display: flex; height: 100vh; }
 .app.hidden { display: none; }
 
-/* ── Session browser (left sidebar) ── */
-.sb {
-  width: var(--sb-w); min-width: var(--sb-w); flex-shrink: 0;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-}
-.sb__header {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
-}
-.sb__logo {
-  width: 28px; height: 28px; border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #071022; display: grid; place-items: center;
-  font-weight: 800; font-size: 12px; flex-shrink: 0;
-}
-.sb__title { font-weight: 700; font-size: 15px; flex: 1; }
-.sb__mode {
-  font-size: 9px; font-weight: 600;
-  padding: 2px 7px; border-radius: 5px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.sb__mode.local { background: rgba(52,211,153,0.15); color: var(--green); }
-.sb__mode.cloud { background: rgba(124,92,255,0.15); color: var(--accent); }
+/* ─── Voz main area ─── */
+.voz { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-/* tmux status row */
-.sb__status {
-  padding: 8px 16px;
+/* hero bar */
+.voz__hero {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 24px;
+  background: linear-gradient(180deg, rgba(124,92,255,0.06) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.voz__orb-wrap { position: relative; width: 44px; height: 44px; flex-shrink: 0; }
+.voz__orb {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--accent), #1a0a40 70%);
+  box-shadow: 0 0 20px var(--accent-glow), 0 0 50px rgba(124,92,255,0.12);
+  transition: all 0.6s ease;
+}
+.voz__orb-ring {
+  position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  opacity: 0; transition: opacity 0.4s;
+}
+.voz--working .voz__orb { box-shadow: 0 0 30px rgba(251,191,36,0.35), 0 0 60px rgba(251,191,36,0.12); background: radial-gradient(circle at 38% 32%, var(--yellow), #2a1a00 70%); }
+.voz--working .voz__orb-ring { opacity: 1; border-top-color: var(--yellow); animation: orb-spin 1.2s linear infinite; }
+.voz--asking .voz__orb { box-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(124,92,255,0.2); }
+.voz--asking .voz__orb-ring { opacity: 1; animation: orb-pulse 2s ease infinite; }
+@keyframes orb-spin { to { transform: rotate(360deg); } }
+@keyframes orb-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+.voz__identity { flex: 1; min-width: 0; }
+.voz__name {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.3px;
+  background: linear-gradient(135deg, #fff 30%, var(--accent-2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.voz__status { font-size: 12px; color: var(--muted); margin-top: 1px; transition: color 0.3s; }
+.voz--working .voz__status { color: var(--yellow); }
+.voz--asking .voz__status { color: var(--accent); }
+
+.voz__meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.voz__badge {
+  font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.voz__badge.local { background: rgba(52,211,153,0.12); color: var(--green); }
+.voz__badge.cloud { background: rgba(124,92,255,0.12); color: var(--accent); }
+.voz__voice-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03); color: var(--muted); cursor: pointer;
+  display: grid; place-items: center; font-size: 16px;
+  transition: all var(--transition);
+}
+.voz__voice-btn:hover { background: rgba(124,92,255,0.12); color: var(--accent); border-color: var(--accent); }
+
+/* terminal */
+.voz__terminal {
+  flex: 1; overflow-y: auto; padding: 12px 20px;
+  background: var(--terminal-bg);
+  font-family: var(--mono); font-size: 12.5px;
+  line-height: 1.55; color: #94a3b8;
+  white-space: pre-wrap; word-break: break-all;
+}
+.voz__terminal::-webkit-scrollbar { width: 5px; }
+.voz__terminal::-webkit-scrollbar-thumb { background: rgba(124,92,255,0.2); border-radius: 3px; }
+.voz__terminal .ln-prompt { color: var(--accent-2); }
+.voz__terminal .ln-error { color: var(--red); }
+.voz__terminal .ln-info { color: var(--blue); }
+
+/* input */
+.voz__input {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  background: rgba(0,0,0,0.15);
+  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+}
+.voz__input input {
+  flex: 1; padding: 10px 16px;
+  background: var(--terminal-bg); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text);
+  font-family: var(--mono); font-size: 13px;
+  outline: none; height: 42px;
+}
+.voz__input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,255,0.1); }
+.voz__input input::placeholder { color: var(--dim); }
+.voz__input .send-btn {
+  width: 42px; height: 42px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.6));
+  color: white; font-size: 16px; cursor: pointer;
+  display: grid; place-items: center;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.voz__input .send-btn:hover { box-shadow: 0 4px 20px var(--accent-glow); transform: translateY(-1px); }
+
+/* ─── Agent sidebar (right) ─── */
+.agents {
+  width: var(--agent-w); min-width: var(--agent-w); flex-shrink: 0;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.agents__header {
+  padding: 16px 16px 12px;
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
-  font-size: 11px; color: var(--muted);
 }
-.sb__status.hidden { display: none; }
-.sb__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.sb__dot.on { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.sb__dot.off { background: var(--red); box-shadow: 0 0 5px var(--red); }
-.sb__dot.loading { background: var(--yellow); animation: pulse-dot 1s infinite; }
-@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.sb__status-text { flex: 1; }
-.sb__status-btns { display: flex; gap: 3px; }
-.sb__status-btns button {
-  padding: 3px 8px; border: 1px solid var(--border); border-radius: 5px;
-  background: transparent; color: var(--muted); cursor: pointer;
-  font-size: 10px; font-family: var(--font); transition: all var(--transition);
+.agents__title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); flex: 1; }
+.agents__count {
+  font-size: 10px; font-weight: 700; color: var(--dim);
+  background: rgba(255,255,255,0.04); padding: 2px 7px; border-radius: 4px;
 }
-.sb__status-btns button:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.agents__list { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.agents__list::-webkit-scrollbar { width: 3px; }
+.agents__list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 
-/* session list */
-.sb__label {
-  padding: 10px 16px 6px;
-  font-size: 10px; font-weight: 600; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.8px;
-}
-.sb__list { flex: 1; overflow-y: auto; padding: 4px 8px; }
-.sb__list::-webkit-scrollbar { width: 3px; }
-.sb__list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-
-.sb-item {
-  padding: 10px 10px; border-radius: 10px;
+/* agent card */
+.agent {
+  padding: 10px; border-radius: 10px; margin-bottom: 4px;
   cursor: pointer; transition: all var(--transition);
-  margin-bottom: 4px; border: 1px solid transparent;
-  display: flex; flex-direction: column; gap: 6px;
+  border: 1px solid transparent;
+  position: relative;
 }
-.sb-item:hover { background: rgba(255,255,255,0.04); }
-.sb-item.open { background: rgba(124,92,255,0.12); border-color: var(--border-active); }
-.sb-item.orch { border-left: 2px solid var(--accent); }
-.sb-item__top { display: flex; align-items: center; gap: 8px; }
-.sb-item__dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(255,255,255,0.15);
+.agent:hover { background: rgba(255,255,255,0.03); }
+.agent.expanded { background: rgba(124,92,255,0.08); border-color: var(--accent-glow); }
+.agent__row { display: flex; align-items: center; gap: 8px; }
+.agent__dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--dim);
 }
-.sb-item__dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.sb-item__dot.busy { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
-.sb-item__dot.stale { background: rgba(255,255,255,0.12); }
-.sb-item__info { flex: 1; min-width: 0; }
-.sb-item__name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb-item__desc { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-
-/* interaction state card */
-.sb-item__state {
-  background: rgba(0,0,0,0.25); border-radius: 7px;
-  padding: 6px 8px; width: 100%;
+.agent__dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.agent__dot.working { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse-dot 1.5s infinite; }
+.agent__dot.asking { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse-dot 2s infinite; }
+.agent__dot.stale { background: var(--dim); }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.agent__name { font-weight: 700; font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent__state-tag {
+  font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
 }
-.sb-item__state-row {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 600;
-}
-.sb-item__state-icon { font-size: 11px; line-height: 1; flex-shrink: 0; }
-.sb-item__state-label { white-space: nowrap; }
-.sb-item__state-label.ready { color: rgba(255,255,255,0.35); }
-.sb-item__state-label.idle { color: var(--green); }
-.sb-item__state-label.working { color: var(--yellow); }
-.sb-item__state-label.asking { color: var(--accent); }
-.sb-item__state-label.error { color: var(--red); }
-.sb-item__state-label.shell { color: rgba(255,255,255,0.25); }
-.sb-item__preview {
-  font-size: 10px; color: var(--muted);
-  margin-top: 3px; line-height: 1.35;
+.agent__state-tag.ready { background: rgba(255,255,255,0.04); color: var(--dim); }
+.agent__state-tag.idle { background: rgba(52,211,153,0.1); color: var(--green); }
+.agent__state-tag.working { background: rgba(251,191,36,0.1); color: var(--yellow); }
+.agent__state-tag.asking { background: rgba(124,92,255,0.12); color: var(--accent); }
+.agent__state-tag.shell { background: rgba(248,113,113,0.1); color: var(--red); }
+.agent__state-tag.unknown { background: rgba(255,255,255,0.04); color: var(--dim); }
+.agent__preview {
+  font-size: 10px; color: var(--muted); line-height: 1.35;
+  margin-top: 6px; padding-left: 16px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; word-break: break-word;
 }
-@keyframes pulse-working { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-.sb-item__state-row.is-working .sb-item__state-icon { animation: pulse-working 1.5s infinite; }
 
-/* new session button */
-.sb__new {
-  margin: 4px 8px; padding: 8px 10px; border-radius: 8px;
-  cursor: pointer; display: flex; align-items: center; gap: 8px;
-  color: var(--muted); font-size: 12px; transition: all var(--transition);
-  border: 1px dashed rgba(255,255,255,0.1);
+/* agent terminal drawer */
+.agent__drawer {
+  max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+  margin-top: 0;
 }
-.sb__new:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: rgba(255,255,255,0.2); }
+.agent.expanded .agent__drawer { max-height: 200px; margin-top: 8px; }
+.agent__term {
+  background: var(--terminal-bg); border-radius: 6px;
+  padding: 6px 8px; font-family: var(--mono); font-size: 10px;
+  line-height: 1.4; color: #6b7a94; white-space: pre-wrap;
+  word-break: break-all; max-height: 140px; overflow-y: auto;
+}
+.agent__term::-webkit-scrollbar { width: 2px; }
+.agent__term::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); }
+.agent__actions {
+  display: flex; gap: 4px; margin-top: 4px;
+}
+.agent__actions button {
+  flex: 1; padding: 4px; border: 1px solid var(--border); border-radius: 5px;
+  background: transparent; color: var(--muted); font-size: 9px;
+  font-family: var(--font); cursor: pointer; transition: all var(--transition);
+}
+.agent__actions button:hover { background: rgba(255,255,255,0.04); color: var(--text); }
 
-/* footer */
-.sb__footer {
-  padding: 10px 12px; border-top: 1px solid var(--border);
+/* add agent button */
+.agents__add {
+  margin: 4px 8px 8px; padding: 8px; border-radius: 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: var(--dim); font-size: 11px; font-weight: 600;
+  transition: all var(--transition);
+  border: 1px dashed rgba(255,255,255,0.08);
+}
+.agents__add:hover { background: rgba(255,255,255,0.03); color: var(--muted); border-color: rgba(255,255,255,0.15); }
+
+/* agents footer */
+.agents__footer {
+  padding: 8px 10px; border-top: 1px solid var(--border);
   display: flex; gap: 4px;
 }
-.sb__footer button {
-  flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px;
-  background: transparent; color: var(--muted); font-size: 10px; cursor: pointer;
+.agents__footer button {
+  flex: 1; padding: 5px; border: 1px solid var(--border); border-radius: 5px;
+  background: transparent; color: var(--dim); font-size: 9px; cursor: pointer;
   font-family: var(--font); transition: all var(--transition);
 }
-.sb__footer button:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.agents__footer button:hover { background: rgba(255,255,255,0.03); color: var(--muted); }
 
-/* ── Main area ── */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.main__empty {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  color: var(--muted); text-align: center; padding: 40px;
+/* tmux status */
+.agents__tmux {
+  padding: 6px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--dim);
 }
-.main__empty h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.main__empty p { font-size: 13px; max-width: 360px; line-height: 1.6; }
-.panels { flex: 1; display: flex; overflow: hidden; }
+.agents__tmux.hidden { display: none; }
+.agents__tmux-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.agents__tmux-dot.on { background: var(--green); box-shadow: 0 0 4px var(--green); }
+.agents__tmux-dot.off { background: var(--red); }
+.agents__tmux-text { flex: 1; }
+.agents__tmux button {
+  padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px;
+  background: transparent; color: var(--dim); font-size: 9px; cursor: pointer;
+  font-family: var(--font);
+}
+.agents__tmux button:hover { color: var(--muted); }
 
-/* ── Panel ── */
-.panel {
-  flex: 1; display: flex; flex-direction: column;
-  border-right: 1px solid var(--border); min-width: 0;
-}
-.panel:last-child { border-right: none; }
-.panel__header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-bottom: 1px solid var(--border);
-  background: rgba(0,0,0,0.15); flex-shrink: 0;
-}
-.panel__dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); flex-shrink: 0; }
-.panel__dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.panel__dot.waiting { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-.panel__name { font-weight: 700; font-size: 13px; }
-.panel__desc { font-size: 11px; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.panel__activity {
-  display: flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 5px;
-  background: rgba(0,0,0,0.3); font-size: 11px;
-}
-.panel__activity-icon { font-size: 11px; line-height: 1; }
-.panel__activity-label { font-weight: 600; }
-.panel__activity-label.ready { color: rgba(255,255,255,0.35); }
-.panel__activity-label.idle { color: var(--green); }
-.panel__activity-label.working { color: var(--yellow); }
-.panel__activity-label.asking { color: var(--accent); }
-.panel__activity-label.error { color: var(--red); }
-.panel__activity-label.shell { color: rgba(255,255,255,0.25); }
-.panel__btn {
-  width: 26px; height: 26px; border: none; border-radius: 5px;
-  background: transparent; color: var(--muted); cursor: pointer;
-  display: grid; place-items: center; font-size: 13px;
-  transition: all var(--transition);
-}
-.panel__btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-.panel__btn.stop:hover { background: rgba(248,113,113,0.15); color: var(--red); }
-
-/* Terminal */
-.panel__terminal {
-  flex: 1; overflow-y: auto; padding: 10px 12px;
-  background: var(--terminal-bg);
-  font-family: var(--terminal-font); font-size: 12px;
-  line-height: 1.5; color: #a0aec0;
-  white-space: pre-wrap; word-break: break-all;
-}
-.panel__terminal::-webkit-scrollbar { width: 4px; }
-.panel__terminal::-webkit-scrollbar-thumb { background: rgba(124,92,255,0.25); border-radius: 2px; }
-.panel__terminal .line-prompt { color: var(--accent-2); }
-.panel__terminal .line-error { color: var(--red); }
-.panel__terminal .line-info { color: var(--accent); }
-
-/* Chat */
-.panel__messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
-.panel__messages::-webkit-scrollbar { width: 4px; }
-.panel__messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-.msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap; }
-.msg.user { align-self: flex-end; background: rgba(124,92,255,0.2); border: 1px solid rgba(124,92,255,0.3); }
-.msg.assistant { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--border); font-family: var(--terminal-font); font-size: 12px; }
-.msg.system { align-self: center; background: transparent; color: var(--muted); font-size: 11px; font-style: italic; }
-.typing { display: flex; gap: 4px; padding: 8px 0; }
-.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.4; animation: blink 1.4s infinite both; }
-.typing span:nth-child(2) { animation-delay: 0.2s; }
-.typing span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink { 0%, 80%, 100% { opacity: 0.4; } 40% { opacity: 1; } }
-
-/* Input */
-.panel__input {
-  padding: 8px 12px; border-top: 1px solid var(--border);
-  background: rgba(0,0,0,0.1);
-  display: flex; gap: 6px; align-items: flex-end; flex-shrink: 0;
-}
-.panel__input textarea, .panel__input input[type="text"] {
-  flex: 1; resize: none; padding: 8px 12px;
-  background: var(--terminal-bg); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text);
-  font-family: var(--terminal-font); font-size: 12px;
-  outline: none; min-height: 36px; max-height: 100px; line-height: 1.4;
-}
-.panel__input textarea:focus, .panel__input input:focus { border-color: var(--accent); }
-.panel__input textarea::placeholder, .panel__input input::placeholder { color: var(--muted); opacity: 0.5; }
-.panel__input button {
-  width: 36px; height: 36px; border: none; border-radius: 8px;
-  cursor: pointer; display: grid; place-items: center;
-  transition: all var(--transition); flex-shrink: 0;
-}
-.panel__input .send-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); color: white; font-size: 14px; }
-.panel__input .send-btn:hover { box-shadow: 0 4px 16px rgba(124,92,255,0.4); }
-.panel__input .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.panel__input .mic-btn { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); font-size: 16px; }
-.panel__input .mic-btn.recording { color: var(--red); background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.3); animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(248,113,113,0.15); } }
-
-/* ── Modals ── */
-.modal-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; }
+/* ─── Modals ─── */
+.modal-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; }
 .modal-overlay.hidden { display: none; }
 .modal { width: 420px; padding: 28px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-.modal label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; margin-top: 14px; }
+.modal label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
 .modal label:first-of-type { margin-top: 0; }
 .modal input, .modal textarea { width: 100%; padding: 10px 14px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
 .modal input:focus, .modal textarea:focus { border-color: var(--accent); }
 .modal textarea { resize: vertical; min-height: 60px; }
-.modal textarea.sysprompt { min-height: 100px; font-family: var(--terminal-font); font-size: 12px; }
+.modal textarea.sysprompt { min-height: 100px; font-family: var(--mono); font-size: 12px; }
 .modal__btns { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
 .modal__btns button { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); font-family: var(--font); }
 .modal__btns .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); }
 .modal__btns .create-btn { background: linear-gradient(135deg, var(--accent), rgba(124,92,255,0.7)); border: none; color: white; }
 
 /* Toast */
-.toast { position: fixed; bottom: 20px; right: 20px; z-index: 200; padding: 12px 20px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); font-size: 13px; box-shadow: var(--shadow); transform: translateY(80px); opacity: 0; transition: all 300ms ease; }
-.toast.show { transform: translateY(0); opacity: 1; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 200; padding: 10px 24px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; box-shadow: var(--shadow); opacity: 0; transition: all 300ms ease; white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
@@ -306,68 +296,75 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
 <!-- Onboarding -->
 <div class="onboarding hidden" id="onboarding">
   <div class="onboarding__card">
-    <div class="onboarding__logo">V</div>
+    <div class="onboarding__orb"></div>
     <h1>Voz</h1>
-    <p>Multi-session AI orchestrator. Talk to many Claude instances at once.</p>
-    <p style="font-size:13px; margin-bottom:16px;">Enter your Anthropic API key to get started. It stays on your device.</p>
+    <p>Your AI orchestrator. Enter your Anthropic API key to begin.</p>
     <div class="onboarding__input">
       <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" />
-      <button id="apiKeySave">Start</button>
+      <button id="apiKeySave">Connect</button>
     </div>
     <div class="onboarding__err" id="apiKeyErr"></div>
-    <div class="onboarding__hint">Stored in localStorage only. <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">Get a key</a></div>
+    <div class="onboarding__hint">Stored locally. <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-2)">Get a key</a></div>
   </div>
 </div>
 
 <!-- App -->
 <div class="app hidden" id="app">
-  <!-- Session browser sidebar -->
-  <aside class="sb">
-    <div class="sb__header">
-      <div class="sb__logo">V</div>
-      <div class="sb__title">Voz</div>
-      <div class="sb__mode" id="modeLabel"></div>
-    </div>
-    <div class="sb__status hidden" id="localStatus">
-      <div class="sb__dot off" id="tmuxDot"></div>
-      <div class="sb__status-text" id="tmuxText">Checking...</div>
-      <div class="sb__status-btns">
-        <button onclick="localStart()">Start</button>
-        <button onclick="localStop()">Stop</button>
+  <!-- Voz main -->
+  <div class="voz" id="vozMain">
+    <div class="voz__hero">
+      <div class="voz__orb-wrap">
+        <div class="voz__orb" id="vozOrb"></div>
+        <div class="voz__orb-ring" id="vozRing"></div>
+      </div>
+      <div class="voz__identity">
+        <div class="voz__name">Voz</div>
+        <div class="voz__status" id="vozStatus">Initializing...</div>
+      </div>
+      <div class="voz__meta">
+        <div class="voz__badge" id="modeBadge"></div>
       </div>
     </div>
-    <div class="sb__label">Sessions</div>
-    <div class="sb__list" id="sessionList"></div>
-    <div class="sb__new" id="newSessionBtn">
-      <span style="font-size:16px; line-height:1">+</span>
-      <span>New Session</span>
+    <div class="voz__terminal" id="vozTerminal"><span style="color:var(--dim)">Connecting...</span></div>
+    <div class="voz__input">
+      <input type="text" id="vozInput" placeholder="Talk to Voz..." />
+      <button class="send-btn" id="vozSend">&#9654;</button>
     </div>
-    <div class="sb__footer">
+  </div>
+
+  <!-- Agents sidebar -->
+  <aside class="agents">
+    <div class="agents__header">
+      <div class="agents__title">Agents</div>
+      <div class="agents__count" id="agentCount">0</div>
+    </div>
+    <div class="agents__tmux hidden" id="tmuxBar">
+      <div class="agents__tmux-dot off" id="tmuxDot"></div>
+      <div class="agents__tmux-text" id="tmuxText">tmux</div>
+      <button onclick="localStart()">Start</button>
+      <button onclick="localStop()">Stop</button>
+    </div>
+    <div class="agents__list" id="agentList"></div>
+    <div class="agents__add" id="addAgentBtn">
+      <span>+</span> <span>New Agent</span>
+    </div>
+    <div class="agents__footer">
       <button id="settingsBtn">Settings</button>
     </div>
   </aside>
-
-  <!-- Main panel area -->
-  <div class="main" id="mainArea">
-    <div class="main__empty" id="emptyState">
-      <h2>Select a session</h2>
-      <p>Click a session in the browser to open it, or create a new one.</p>
-    </div>
-    <div class="panels" id="panels" style="display:none"></div>
-  </div>
 </div>
 
-<!-- New session modal -->
+<!-- New agent modal -->
 <div class="modal-overlay hidden" id="addModal">
   <div class="modal">
-    <h3>New Session</h3>
+    <h3>New Agent</h3>
     <label>Name</label>
     <input type="text" id="newName" placeholder="my-project" />
     <label>Path (local mode)</label>
     <input type="text" id="newPath" placeholder="~/code/my-project" />
     <label>Description</label>
     <input type="text" id="newDesc" placeholder="REST backend service" />
-    <label>System prompt (cloud mode, optional)</label>
+    <label>System prompt (cloud, optional)</label>
     <textarea class="sysprompt" id="newSystem" placeholder="You are a senior backend engineer..."></textarea>
     <div class="modal__btns">
       <button class="cancel-btn" id="addCancel">Cancel</button>
@@ -382,7 +379,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
     <h3>Settings</h3>
     <label>Anthropic API Key</label>
     <input type="password" id="settingsKey" placeholder="sk-ant-api03-..." />
-    <label>Default model</label>
+    <label>Default Model</label>
     <input type="text" id="settingsModel" placeholder="claude-sonnet-4-5-20250929" />
     <div class="modal__btns">
       <button class="cancel-btn" id="settingsCancel">Cancel</button>
@@ -394,22 +391,23 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); disp
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════
-//  Voz — Session browser + panels
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  Voz — Jarvis-style orchestrator
+// ═══════════════════════════════════════════════════════
 
 const STATE_KEY = "voz_state";
 const API_KEY_KEY = "voz_api_key";
 const MODEL_KEY = "voz_model";
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
-const STALE_AFTER = 2; // refresh cycles
+const STALE_AFTER = 2;
+const VOZ_ID = "local-voz";
 
 let MODE = "cloud";
 let LOCAL_API = "";
 let state = loadState();
-let openPanels = [];       // session IDs open as panels (max 3)
 let prevOutputs = {};
 let staleCounters = {};
+let expandedAgent = null;
 
 function loadState() {
   try { const r = localStorage.getItem(STATE_KEY); if (r) return JSON.parse(r); } catch {}
@@ -421,21 +419,114 @@ function setApiKey(k) { localStorage.setItem(API_KEY_KEY, k); }
 function getModel() { return localStorage.getItem(MODEL_KEY) || DEFAULT_MODEL; }
 function setModel(m) { localStorage.setItem(MODEL_KEY, m || DEFAULT_MODEL); }
 
+// ═══════════════════════════════════════════════════════
+//  Claude state parser
+// ═══════════════════════════════════════════════════════
+
+function parseClaudeState(output) {
+  if (!output || !output.trim()) return { state: "unknown", label: "No output", preview: "" };
+
+  const lines = output.split("\n");
+  const trimmed = lines.map(l => l.trim()).filter(l => l.length > 0);
+  const last5 = trimmed.slice(-5).join("\n");
+  const last8 = trimmed.slice(-8).join("\n");
+
+  // Back at bash shell
+  const lastLine = trimmed[trimmed.length - 1] || "";
+  if (/\$\s*$/.test(lastLine) && /@/.test(lastLine)) {
+    return { state: "shell", label: "Offline", preview: "Claude exited" };
+  }
+
+  // Fresh prompt — never interacted
+  if (/Try \u201c/.test(last8) || /Try "/.test(last8)) {
+    return { state: "ready", label: "Standing by", preview: "Awaiting instructions" };
+  }
+
+  // Permission prompt
+  if (/Allow\?|Do you want to proceed|\(y\/n\)|\(Y\/n\)|yes\/no/i.test(last5)) {
+    const q = trimmed.filter(l => /Allow\?|\?|proceed|confirm/i.test(l)).pop() || "";
+    return { state: "asking", label: "Awaiting approval", preview: cleanPreview(q) || "Needs your confirmation" };
+  }
+
+  // AskUserQuestion prompt
+  if (/\d+\.\s|Select|Choose|Which|pick/i.test(last5) && /\?\s*$/.test(last5)) {
+    const questionLine = trimmed.filter(l => /\?/.test(l)).pop() || "";
+    return { state: "asking", label: "Question for you", preview: cleanPreview(questionLine) };
+  }
+
+  // Working — tool execution
+  const workPatterns = [
+    /\u23f5\s+(Read|Edit|Write|Bash|Glob|Grep|Task)\b/,
+    /\u29eb\s/, /^\s*\u280[0-9a-f]/, /Running\b.*\.\.\./,
+    /Thinking\b/, /\u23f3/,
+  ];
+  for (const pat of workPatterns) {
+    if (pat.test(last5)) {
+      const workLine = trimmed.slice(-3).find(l => pat.test(l)) || lastLine;
+      return { state: "working", label: "Working", preview: cleanPreview(workLine) };
+    }
+  }
+
+  // Responding (no prompt at end)
+  const hasPrompt = /^\u276f\s*$/.test(lastLine) || /^\u276f\s/.test(lastLine);
+  if (!hasPrompt) {
+    const recent = trimmed.slice(-6);
+    if (recent.some(l => /^\s*\u23bf|^\s*\u2502|^\s*\u2514/.test(l))) {
+      return { state: "working", label: "Responding", preview: cleanPreview(lastLine) };
+    }
+  }
+
+  // Idle at prompt — extract last interaction
+  if (hasPrompt || /\u276f/.test(last5)) {
+    let lastUserMsg = "", lastClaudeMsg = "";
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+      if (/^\u276f\s+\S/.test(trimmed[i]) && !lastUserMsg) lastUserMsg = trimmed[i].replace(/^\u276f\s+/, "");
+      if (/^\u23bf\s/.test(trimmed[i]) && !lastClaudeMsg) lastClaudeMsg = trimmed[i].replace(/^\u23bf\s+/, "");
+      if (lastUserMsg && lastClaudeMsg) break;
+    }
+
+    // Check if Claude's last block was a question
+    const claudeLines = [];
+    let inResp = false;
+    for (let i = 0; i < trimmed.length; i++) {
+      if (/^\u23bf/.test(trimmed[i])) { inResp = true; claudeLines.push(trimmed[i].replace(/^\u23bf\s*/, "")); }
+      else if (/^\u276f/.test(trimmed[i])) { inResp = false; claudeLines.length = 0; }
+      else if (inResp) claudeLines.push(trimmed[i]);
+    }
+    const block = claudeLines.join(" ").trim();
+    const isQuestion = /\?\s*$/.test(block) || /\bwhat\b|\bwhich\b|\bshould\b|\bwould you\b|\bdo you\b/i.test(block.slice(-120));
+
+    if (isQuestion && block) return { state: "asking", label: "Asked you", preview: cleanPreview(block.slice(-120)) };
+    if (lastClaudeMsg) return { state: "idle", label: "Complete", preview: cleanPreview(lastClaudeMsg) };
+    if (lastUserMsg) return { state: "idle", label: "Complete", preview: "You said: " + cleanPreview(lastUserMsg) };
+    return { state: "idle", label: "Idle", preview: "Awaiting instructions" };
+  }
+
+  return { state: "unknown", label: "Active", preview: cleanPreview(lastLine) };
+}
+
+function cleanPreview(text) {
+  return text
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/[\u23f5\u23bf\u276f\u29eb\u2502\u2514\u250c\u2500]/g, "")
+    .replace(/\s+/g, " ").trim().slice(0, 140);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Staleness
+// ═══════════════════════════════════════════════════════
+
 function updateStaleness(s) {
   const out = (s.output || "").trim();
   if (prevOutputs[s.id] === undefined) { prevOutputs[s.id] = out; staleCounters[s.id] = 0; return; }
-  if (prevOutputs[s.id] === out) { staleCounters[s.id] = (staleCounters[s.id] || 0) + 1; }
+  if (prevOutputs[s.id] === out) staleCounters[s.id] = (staleCounters[s.id] || 0) + 1;
   else { staleCounters[s.id] = 0; prevOutputs[s.id] = out; }
 }
 function isStale(s) { return (staleCounters[s.id] || 0) >= STALE_AFTER; }
 
-// dotClass for a session
-function dotClass(s) {
-  if (s.status === "waiting") return "busy";
-  if (s.local && isStale(s)) return "stale";
-  if (s.status === "live") return "live";
-  return "stale";
-}
+// ═══════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════
 
 async function detectMode() {
   try {
@@ -446,30 +537,22 @@ async function detectMode() {
   return "cloud";
 }
 
-// ── Init ──
 async function init() {
   MODE = await detectMode();
-  const label = document.getElementById("modeLabel");
+  const badge = document.getElementById("modeBadge");
 
   if (MODE === "local") {
-    label.textContent = "LOCAL";
-    label.className = "sb__mode local";
-    document.getElementById("localStatus").classList.remove("hidden");
+    badge.textContent = "LOCAL"; badge.className = "voz__badge local";
+    document.getElementById("tmuxBar").classList.remove("hidden");
     document.getElementById("app").classList.remove("hidden");
     await localRefresh();
-    // Auto-open first session
-    if (openPanels.length === 0 && state.sessions.length > 0) {
-      openPanels.push(state.sessions[0].id);
-    }
     renderAll();
     setInterval(localRefresh, 4000);
   } else {
-    label.textContent = "CLOUD";
-    label.className = "sb__mode cloud";
-    document.getElementById("localStatus").classList.add("hidden");
-    // Hide path field in new session modal
-    document.getElementById("newPath").parentElement.previousElementSibling.style.display = "none";
-    document.getElementById("newPath").parentElement.style.display = "none";
+    badge.textContent = "CLOUD"; badge.className = "voz__badge cloud";
+    document.getElementById("tmuxBar").classList.add("hidden");
+    document.getElementById("newPath").closest("label")?.style && (document.getElementById("newPath").previousElementSibling.style.display = "none");
+    document.getElementById("newPath").style.display = "none";
     if (getApiKey()) {
       document.getElementById("app").classList.remove("hidden");
       renderAll();
@@ -479,9 +562,9 @@ async function init() {
   }
 }
 
-// ═══════════════════════════════════════
-//  LOCAL MODE
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  Local mode
+// ═══════════════════════════════════════════════════════
 
 async function localApi(path, opts = {}) {
   try {
@@ -495,12 +578,11 @@ async function localRefresh() {
   const dot = document.getElementById("tmuxDot");
   const text = document.getElementById("tmuxText");
 
-  if (data.session) { dot.className = "sb__dot on"; text.textContent = "Running"; }
-  else { dot.className = "sb__dot off"; text.textContent = "Stopped"; }
+  if (data.session) { dot.className = "agents__tmux-dot on"; text.textContent = "Running"; }
+  else { dot.className = "agents__tmux-dot off"; text.textContent = "Stopped"; }
 
   if (data.projects) {
-    const projects = data.projects;
-    for (const lp of projects) {
+    for (const lp of data.projects) {
       const sid = "local-" + lp.name;
       const existing = state.sessions.find(s => s.id === sid);
       if (!existing) {
@@ -516,7 +598,7 @@ async function localRefresh() {
       }
       updateStaleness(state.sessions.find(s => s.id === sid));
     }
-    const localNames = new Set(projects.map(p => "local-" + p.name));
+    const localNames = new Set(data.projects.map(p => "local-" + p.name));
     state.sessions = state.sessions.filter(s => !s.local || localNames.has(s.id));
     saveState();
   }
@@ -540,7 +622,7 @@ async function localStopProject(name) {
 }
 
 async function localStart() {
-  document.getElementById("tmuxDot").className = "sb__dot loading";
+  document.getElementById("tmuxDot").className = "agents__tmux-dot on";
   document.getElementById("tmuxText").textContent = "Starting...";
   toast("Starting all sessions...");
   await localApi("/api/start", { method: "POST" });
@@ -548,25 +630,25 @@ async function localStart() {
 }
 
 async function localStop() {
-  document.getElementById("tmuxDot").className = "sb__dot loading";
+  document.getElementById("tmuxDot").className = "agents__tmux-dot off";
   document.getElementById("tmuxText").textContent = "Stopping...";
-  toast("Stopping all sessions...");
+  toast("Stopping...");
   await localApi("/api/stop", { method: "POST" });
   setTimeout(localRefresh, 3000);
 }
 
 function colorize(text) {
   return text.split("\n").map(line => {
-    if (/error|Error|ERROR|fail|FAIL/i.test(line)) return `<span class="line-error">${esc(line)}</span>`;
-    if (/^(>>|\$|❯)/.test(line.trim())) return `<span class="line-prompt">${esc(line)}</span>`;
-    if (/info|complete|success|done/i.test(line)) return `<span class="line-info">${esc(line)}</span>`;
+    if (/error|Error|ERROR|fail|FAIL/i.test(line)) return `<span class="ln-error">${esc(line)}</span>`;
+    if (/^(>>|\$|\u276f)/.test(line.trim())) return `<span class="ln-prompt">${esc(line)}</span>`;
+    if (/info|complete|success|done/i.test(line)) return `<span class="ln-info">${esc(line)}</span>`;
     return esc(line);
   }).join("\n");
 }
 
-// ═══════════════════════════════════════
-//  CLOUD MODE
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  Cloud mode
+// ═══════════════════════════════════════════════════════
 
 function createSession(name, desc, systemPrompt) {
   return { id: crypto.randomUUID(), name: name || "untitled", desc: desc || "",
@@ -585,371 +667,150 @@ async function callClaude(apiKey, messages, systemPrompt, stream = false) {
   return stream ? res : res.json();
 }
 
-async function cloudSend(sessionId, text) {
-  const session = state.sessions.find(s => s.id === sessionId);
-  if (!session) return;
-  session.messages.push({ role: "user", content: text });
-  session.status = "waiting"; session.lastActiveAt = Date.now();
-  saveState(); renderAll();
-
-  const msgsEl = document.getElementById("msgs-" + sessionId);
-  if (msgsEl) {
-    const t = document.createElement("div");
-    t.className = "msg thinking"; t.id = "typing-" + sessionId;
-    t.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-    msgsEl.appendChild(t); msgsEl.scrollTop = msgsEl.scrollHeight;
-  }
-
-  try {
-    const apiMsgs = session.messages.map(m => ({ role: m.role, content: m.content }));
-    const res = await callClaude(getApiKey(), apiMsgs, session.systemPrompt, true);
-    if (!res.ok) throw new Error(await res.text());
-    session.status = "live"; saveState(); renderSidebar();
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let text2 = "", buffer = "";
-    const t2 = document.getElementById("typing-" + sessionId); if (t2) t2.remove();
-    const msgsEl2 = document.getElementById("msgs-" + sessionId);
-    let aEl = null;
-    if (msgsEl2) { aEl = document.createElement("div"); aEl.className = "msg assistant"; msgsEl2.appendChild(aEl); }
-    while (true) {
-      const { done, value } = await reader.read(); if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n"); buffer = lines.pop() || "";
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim(); if (data === "[DONE]") continue;
-        try {
-          const evt = JSON.parse(data);
-          if (evt.type === "content_block_delta" && evt.delta?.text) {
-            text2 += evt.delta.text;
-            if (aEl) { aEl.textContent = text2; msgsEl2.scrollTop = msgsEl2.scrollHeight; }
-          }
-        } catch {}
-      }
-    }
-    if (text2) session.messages.push({ role: "assistant", content: text2 });
-    session.status = "idle"; session.lastActiveAt = Date.now();
-    saveState(); renderSidebar();
-  } catch (err) {
-    const t3 = document.getElementById("typing-" + sessionId); if (t3) t3.remove();
-    session.status = "idle";
-    session.messages.push({ role: "assistant", content: "Error: " + err.message });
-    saveState(); renderAll();
-    toast("Error: " + err.message);
-  }
-}
-
-// ═══════════════════════════════════════
-//  RENDER
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  Render
+// ═══════════════════════════════════════════════════════
 
 function renderAll() {
-  renderSidebar();
-  renderPanels();
+  renderVoz();
+  renderAgents();
 }
 
-// ── Claude state parser ──
-function parseClaudeState(output) {
-  if (!output || !output.trim()) return { state: "unknown", icon: "?", label: "No output", preview: "" };
+function renderVoz() {
+  const voz = state.sessions.find(s => s.id === VOZ_ID);
+  const main = document.getElementById("vozMain");
+  const statusEl = document.getElementById("vozStatus");
+  const termEl = document.getElementById("vozTerminal");
 
-  const lines = output.split("\n");
-  const trimmed = lines.map(l => l.trim()).filter(l => l.length > 0);
-  const raw = output;
-  const last5 = trimmed.slice(-5).join("\n");
-
-  // Back at bash shell (Claude not running)
-  if (/\$\s*$/.test(trimmed[trimmed.length - 1] || "") && /@/.test(trimmed[trimmed.length - 1] || "")) {
-    return { state: "shell", icon: "\u25cb", label: "Not running", preview: "Claude exited — at shell prompt" };
-  }
-
-  // Fresh Claude prompt — never interacted (Try line near the end)
-  const last8 = trimmed.slice(-8).join("\n");
-  if (/Try \u201c/.test(last8) || /Try "/.test(last8)) {
-    return { state: "ready", icon: "\u25cc", label: "Ready", preview: "Waiting for first message" };
-  }
-
-  // Permission / confirmation prompt
-  if (/Allow\?|Do you want to proceed|\(y\/n\)|\(Y\/n\)|yes\/no/i.test(last5)) {
-    const q = trimmed.filter(l => /Allow\?|\?|proceed|confirm/i.test(l)).pop() || "";
-    return { state: "asking", icon: "\u2753", label: "Needs input", preview: q || "Waiting for your confirmation" };
-  }
-
-  // AskUserQuestion-style interactive prompt
-  if (/\d+\.\s|Select|Choose|Which|pick/i.test(last5) && /\?\s*$/.test(last5)) {
-    const questionLine = trimmed.filter(l => /\?/.test(l)).pop() || "";
-    return { state: "asking", icon: "\ud83d\udcac", label: "Asked you", preview: cleanPreview(questionLine) };
-  }
-
-  // Working — tool execution or spinner
-  const workIndicators = [
-    /\u23f5\s+Read\b/,
-    /\u23f5\s+Edit\b/,
-    /\u23f5\s+Write\b/,
-    /\u23f5\s+Bash\b/,
-    /\u23f5\s+Glob\b/,
-    /\u23f5\s+Grep\b/,
-    /\u23f5\s+Task\b/,
-    /\u29eb\s/,
-    /^\s*\u280[0-9a-f]/,
-    /Running\b.*\.\.\./,
-    /Thinking\b/,
-    /\u23f3/,
-  ];
-  for (const pat of workIndicators) {
-    if (pat.test(last5)) {
-      const workLine = trimmed.slice(-3).find(l => pat.test(l)) || trimmed[trimmed.length - 1] || "";
-      return { state: "working", icon: "\u2699\ufe0f", label: "Working", preview: cleanPreview(workLine) };
-    }
-  }
-
-  // Actively outputting text (Claude responding — no prompt at end)
-  const lastLine = trimmed[trimmed.length - 1] || "";
-  const hasPrompt = /^\u276f\s*$/.test(lastLine) || /^\u276f\s/.test(lastLine);
-
-  if (!hasPrompt) {
-    // Check if the last content looks like Claude's output
-    const recentContent = trimmed.slice(-6);
-    const hasResponse = recentContent.some(l => /^\s*\u23bf|^\s*\u2502|^\s*\u2514/.test(l));
-    if (hasResponse) {
-      return { state: "working", icon: "\u270d\ufe0f", label: "Responding", preview: cleanPreview(lastLine) };
-    }
-  }
-
-  // Idle at prompt — extract last interaction
-  if (hasPrompt || /\u276f/.test(last5)) {
-    // Find the last user message (line starting with ❯ followed by text)
-    let lastUserMsg = "";
-    let lastClaudeMsg = "";
-    for (let i = trimmed.length - 1; i >= 0; i--) {
-      const line = trimmed[i];
-      if (/^\u276f\s+\S/.test(line) && !lastUserMsg) {
-        lastUserMsg = line.replace(/^\u276f\s+/, "");
-      }
-      // Claude response lines (⎿ prefix)
-      if (/^\u23bf\s/.test(line) && !lastClaudeMsg) {
-        lastClaudeMsg = line.replace(/^\u23bf\s+/, "");
-      }
-      if (lastUserMsg && lastClaudeMsg) break;
-    }
-
-    // Find if Claude asked a question in its response
-    const claudeLines = [];
-    let inResponse = false;
-    for (let i = 0; i < trimmed.length; i++) {
-      if (/^\u23bf/.test(trimmed[i])) { inResponse = true; claudeLines.push(trimmed[i].replace(/^\u23bf\s*/, "")); }
-      else if (/^\u276f/.test(trimmed[i])) { inResponse = false; claudeLines.length = 0; }
-      else if (inResponse) claudeLines.push(trimmed[i]);
-    }
-    const lastClaudeBlock = claudeLines.join(" ").trim();
-    const askedQuestion = /\?\s*$/.test(lastClaudeBlock) || /\bwhat\b|\bwhich\b|\bshould\b|\bwould you\b|\bdo you\b/i.test(lastClaudeBlock.slice(-120));
-
-    if (askedQuestion && lastClaudeBlock) {
-      return { state: "asking", icon: "\ud83d\udcac", label: "Asked you", preview: cleanPreview(lastClaudeBlock.slice(-100)) };
-    }
-    if (lastClaudeMsg) {
-      return { state: "idle", icon: "\u2714\ufe0f", label: "Done", preview: cleanPreview(lastClaudeMsg) };
-    }
-    if (lastUserMsg) {
-      return { state: "idle", icon: "\u2714\ufe0f", label: "Done", preview: "You: " + cleanPreview(lastUserMsg) };
-    }
-    return { state: "idle", icon: "\u23f8\ufe0f", label: "Idle", preview: "Waiting for a message" };
-  }
-
-  // Fallback
-  return { state: "unknown", icon: "\u2022", label: "Active", preview: cleanPreview(lastLine) };
-}
-
-function cleanPreview(text) {
-  // Strip ANSI codes, special chars, collapse whitespace
-  return text
-    .replace(/\x1b\[[0-9;]*m/g, "")
-    .replace(/[\u23f5\u23bf\u276f\u29eb\u2502\u2514\u250c\u2500]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
-}
-
-function renderSidebar() {
-  const list = document.getElementById("sessionList");
-  list.innerHTML = "";
-
-  state.sessions.forEach(s => {
-    const el = document.createElement("div");
-    const isOrch = s.name === "voz";
-    el.className = "sb-item" + (openPanels.includes(s.id) ? " open" : "") + (isOrch ? " orch" : "");
-    const dc = dotClass(s);
-    const cs = parseClaudeState(s.output);
-    // Store parsed state on session for panel header use
-    s._parsed = cs;
-
-    const workingClass = cs.state === "working" ? " is-working" : "";
-
-    el.innerHTML = `
-      <div class="sb-item__top">
-        <div class="sb-item__dot ${dc}"></div>
-        <div class="sb-item__info">
-          <div class="sb-item__name">${isOrch ? "\ud83c\udf99\ufe0f " : ""}${esc(s.name)}</div>
-        </div>
-      </div>
-      <div class="sb-item__state">
-        <div class="sb-item__state-row${workingClass}">
-          <span class="sb-item__state-icon">${cs.icon}</span>
-          <span class="sb-item__state-label ${cs.state}">${esc(cs.label)}</span>
-        </div>
-        ${cs.preview ? `<div class="sb-item__preview">${esc(cs.preview)}</div>` : ""}
-      </div>
-    `;
-    el.onclick = () => togglePanel(s.id);
-    list.appendChild(el);
-  });
-}
-
-function togglePanel(sid) {
-  const idx = openPanels.indexOf(sid);
-  if (idx >= 0) {
-    openPanels.splice(idx, 1);
-  } else {
-    if (openPanels.length >= 3) openPanels.shift();
-    openPanels.push(sid);
-  }
-  renderAll();
-}
-
-function renderPanels() {
-  const container = document.getElementById("panels");
-  const empty = document.getElementById("emptyState");
-
-  if (openPanels.length === 0) {
-    container.style.display = "none"; empty.style.display = ""; return;
-  }
-  empty.style.display = "none"; container.style.display = "";
-
-  // Check if panel set changed
-  const cur = Array.from(container.querySelectorAll(".panel")).map(p => p.dataset.sid);
-  const same = cur.length === openPanels.length && cur.every((id, i) => id === openPanels[i]);
-
-  if (same) {
-    // In-place update
-    for (const sid of openPanels) {
-      const s = state.sessions.find(x => x.id === sid);
-      if (s) updatePanelInPlace(s);
-    }
+  if (!voz) {
+    statusEl.textContent = "No session detected";
+    main.className = "voz";
     return;
   }
 
-  // Full rebuild
-  container.innerHTML = "";
-  openPanels.forEach(sid => {
-    const s = state.sessions.find(x => x.id === sid);
-    if (!s) return;
-    const panel = document.createElement("div");
-    panel.className = "panel"; panel.dataset.sid = sid;
-    buildPanel(panel, s);
-    container.appendChild(panel);
-  });
-}
+  const cs = parseClaudeState(voz.output);
+  voz._parsed = cs;
 
-function buildPanel(panel, s) {
-  const dc = s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "";
-  const cs = s._parsed || parseClaudeState(s.output);
+  // Update orb state
+  main.className = "voz" +
+    (cs.state === "working" ? " voz--working" : "") +
+    (cs.state === "asking" ? " voz--asking" : "");
 
-  if (s.local) {
-    panel.innerHTML = `
-      <div class="panel__header">
-        <div class="panel__dot ${dc}"></div>
-        <div class="panel__name">${esc(s.name)}</div>
-        <div class="panel__activity" id="activity-${s.id}">
-          <span class="panel__activity-icon">${cs.icon}</span>
-          <span class="panel__activity-label ${cs.state}">${esc(cs.label)}</span>
-        </div>
-        <button class="panel__btn stop" title="Ctrl-C" data-action="stop">&#9632;</button>
-        <button class="panel__btn" title="Close" data-action="close">&times;</button>
-      </div>
-      <div class="panel__terminal" id="term-${s.id}">${s.output ? colorize(s.output) : '<span style="color:rgba(255,255,255,0.2)">No output yet</span>'}</div>
-      <div class="panel__input">
-        <input type="text" placeholder="Send to ${esc(s.name)}..." />
-        <button class="send-btn">&#9654;</button>
-      </div>
-    `;
-    panel.querySelector(".panel__terminal").scrollTop = 99999;
-    panel.querySelector('[data-action="close"]').onclick = () => togglePanel(s.id);
-    panel.querySelector('[data-action="stop"]').onclick = () => localStopProject(s.id);
-    const input = panel.querySelector("input[type='text']");
-    const send = panel.querySelector(".send-btn");
-    const doSend = () => { const m = input.value.trim(); if (!m) return; input.value = ""; localDispatch(s.id, m); };
-    send.onclick = doSend;
-    input.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
+  // Status text
+  const agentSummary = getAgentSummary();
+  if (cs.state === "working") {
+    statusEl.textContent = cs.preview ? "Working \u2014 " + cs.preview : "Working...";
+  } else if (cs.state === "asking") {
+    statusEl.textContent = cs.preview ? cs.label + ": " + cs.preview : cs.label;
+  } else if (cs.state === "ready") {
+    statusEl.textContent = agentSummary ? "Standing by \u2014 " + agentSummary : "Standing by. Ready for your command.";
+  } else if (cs.state === "idle") {
+    statusEl.textContent = cs.preview ? cs.preview : (agentSummary || "Ready.");
   } else {
-    panel.innerHTML = `
-      <div class="panel__header">
-        <div class="panel__dot ${dc}"></div>
-        <div class="panel__name">${esc(s.name)}</div>
-        <div class="panel__desc">${esc(s.desc)}</div>
-        <button class="panel__btn" title="Close" data-action="close">&times;</button>
+    statusEl.textContent = cs.label || "Active";
+  }
+
+  // Terminal — in-place update
+  if (voz.output) {
+    const atBottom = termEl.scrollTop + termEl.clientHeight >= termEl.scrollHeight - 30;
+    termEl.innerHTML = colorize(voz.output);
+    if (atBottom) termEl.scrollTop = termEl.scrollHeight;
+  }
+}
+
+function getAgentSummary() {
+  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
+  if (agents.length === 0) return "";
+  const working = agents.filter(s => (s._parsed || parseClaudeState(s.output)).state === "working");
+  const asking = agents.filter(s => (s._parsed || parseClaudeState(s.output)).state === "asking");
+  const parts = [];
+  if (working.length) parts.push(working.map(s => s.name).join(", ") + " working");
+  if (asking.length) parts.push(asking.map(s => s.name).join(", ") + " needs you");
+  return parts.join(" \u2022 ");
+}
+
+function renderAgents() {
+  const list = document.getElementById("agentList");
+  const countEl = document.getElementById("agentCount");
+  const agents = state.sessions.filter(s => s.id !== VOZ_ID);
+
+  countEl.textContent = agents.length;
+
+  // Preserve scroll
+  const scrollTop = list.scrollTop;
+  list.innerHTML = "";
+
+  agents.forEach(s => {
+    const cs = parseClaudeState(s.output);
+    s._parsed = cs;
+
+    const dotState = cs.state === "working" ? "working" : cs.state === "asking" ? "asking" :
+      (s.local && isStale(s)) ? "stale" : s.status === "live" ? "live" : "stale";
+
+    const card = document.createElement("div");
+    card.className = "agent" + (expandedAgent === s.id ? " expanded" : "");
+    card.innerHTML = `
+      <div class="agent__row">
+        <div class="agent__dot ${dotState}"></div>
+        <div class="agent__name">${esc(s.name)}</div>
+        <div class="agent__state-tag ${cs.state}">${esc(cs.label)}</div>
       </div>
-      <div class="panel__messages" id="msgs-${s.id}">
-        ${s.messages.length === 0 ? '<div class="msg system">Start a conversation.</div>' : ""}
-        ${(s.messages || []).map(m => `<div class="msg ${m.role}">${esc(m.content)}</div>`).join("")}
-      </div>
-      <div class="panel__input">
-        <button class="mic-btn" title="Voice">&#127908;</button>
-        <textarea rows="1" placeholder="Message ${esc(s.name)}..."></textarea>
-        <button class="send-btn" ${s.status === "waiting" ? "disabled" : ""}>&#9654;</button>
+      ${cs.preview ? `<div class="agent__preview">${esc(cs.preview)}</div>` : ""}
+      <div class="agent__drawer">
+        <div class="agent__term" id="aterm-${s.id}">${s.output ? miniTerminal(s.output) : '<span style="opacity:0.3">No output</span>'}</div>
+        <div class="agent__actions">
+          <button onclick="agentSend('${s.id}')">Send message</button>
+          <button onclick="localStopProject('${s.id}')">Ctrl-C</button>
+        </div>
       </div>
     `;
-    panel.querySelector(".panel__messages").scrollTop = 99999;
-    panel.querySelector('[data-action="close"]').onclick = () => togglePanel(s.id);
-    const ta = panel.querySelector("textarea");
-    const send = panel.querySelector(".send-btn");
-    const doSend = () => { const t = ta.value.trim(); if (!t || s.status === "waiting") return; ta.value = ""; ta.style.height = "auto"; cloudSend(s.id, t); };
-    send.onclick = doSend;
-    ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } };
-    ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 100) + "px"; };
-    const mic = panel.querySelector(".mic-btn");
-    if (mic) mic.onclick = () => startVoiceInput(s.id, mic, ta);
-  }
+    card.querySelector(".agent__row").onclick = () => {
+      expandedAgent = expandedAgent === s.id ? null : s.id;
+      renderAgents();
+    };
+    list.appendChild(card);
+  });
+
+  list.scrollTop = scrollTop;
 }
 
-function updatePanelInPlace(s) {
-  const term = document.getElementById("term-" + s.id);
-  if (term && s.output) {
-    const atBottom = term.scrollTop + term.clientHeight >= term.scrollHeight - 20;
-    term.innerHTML = colorize(s.output);
-    if (atBottom) term.scrollTop = term.scrollHeight;
-  }
-  const panel = document.querySelector(`.panel[data-sid="${s.id}"]`);
-  if (panel) {
-    const dot = panel.querySelector(".panel__dot");
-    if (dot) dot.className = "panel__dot " + (s.status === "live" ? "live" : s.status === "waiting" ? "waiting" : "");
-    // Update activity badge
-    const act = document.getElementById("activity-" + s.id);
-    if (act) {
-      const cs = s._parsed || parseClaudeState(s.output);
-      act.querySelector(".panel__activity-icon").textContent = cs.icon;
-      const lbl = act.querySelector(".panel__activity-label");
-      lbl.textContent = cs.label;
-      lbl.className = "panel__activity-label " + cs.state;
+function miniTerminal(output) {
+  // Last 12 lines, compact
+  const lines = output.split("\n").slice(-12);
+  return lines.map(l => esc(l)).join("\n");
+}
+
+function agentSend(sid) {
+  const msg = prompt("Message for " + sid.replace("local-", "") + ":");
+  if (msg && msg.trim()) localDispatch(sid, msg.trim());
+}
+
+// ═══════════════════════════════════════════════════════
+//  Voz input
+// ═══════════════════════════════════════════════════════
+
+function setupVozInput() {
+  const input = document.getElementById("vozInput");
+  const btn = document.getElementById("vozSend");
+  const doSend = () => {
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = "";
+    if (MODE === "local") {
+      localDispatch(VOZ_ID, msg);
     }
-  }
+    // Cloud mode Voz chat could go here
+  };
+  btn.onclick = doSend;
+  input.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
 }
+setupVozInput();
 
-// ── Voice ──
-let currentRecognition = null;
-function startVoiceInput(sid, btn, ta) {
-  if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) { toast("Voice not supported"); return; }
-  if (currentRecognition) { currentRecognition.stop(); currentRecognition = null; btn.classList.remove("recording"); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const r = new SR(); r.continuous = false; r.interimResults = true; r.lang = "en-US";
-  currentRecognition = r; btn.classList.add("recording");
-  r.onresult = (e) => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; ta.value = t; };
-  r.onend = () => { currentRecognition = null; btn.classList.remove("recording"); };
-  r.onerror = () => { currentRecognition = null; btn.classList.remove("recording"); };
-  r.start();
-}
+// ═══════════════════════════════════════════════════════
+//  New agent
+// ═══════════════════════════════════════════════════════
 
-// ── New Session ──
-document.getElementById("newSessionBtn").onclick = () => {
+document.getElementById("addAgentBtn").onclick = () => {
   document.getElementById("addModal").classList.remove("hidden");
   document.getElementById("newName").value = "";
   document.getElementById("newPath").value = "";
@@ -964,29 +825,27 @@ document.getElementById("addCreate").onclick = () => {
   const desc = document.getElementById("newDesc").value.trim();
   const path = document.getElementById("newPath").value.trim();
   const sys = document.getElementById("newSystem").value.trim();
-
   if (MODE === "local" && path) {
-    // TODO: call API to add project to projects.yaml + create tmux window
-    toast("Local project creation coming soon — add to projects.yaml manually for now");
+    toast("Local agent creation coming soon");
     document.getElementById("addModal").classList.add("hidden");
     return;
   }
-
   const s = createSession(name, desc, sys);
   state.sessions.push(s); saveState();
   document.getElementById("addModal").classList.add("hidden");
-  openPanels.push(s.id);
-  if (openPanels.length > 3) openPanels.shift();
   renderAll();
-  toast("Session '" + name + "' created");
+  toast("Agent '" + name + "' created");
 };
 document.getElementById("newName").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("addCreate").click(); };
 
-// ── Onboarding ──
+// ═══════════════════════════════════════════════════════
+//  Onboarding / Settings / Modals
+// ═══════════════════════════════════════════════════════
+
 document.getElementById("apiKeySave").onclick = async () => {
   const key = document.getElementById("apiKeyInput").value.trim();
   const err = document.getElementById("apiKeyErr");
-  if (!key) { err.textContent = "Please enter an API key."; return; }
+  if (!key) { err.textContent = "Enter an API key."; return; }
   err.textContent = "Validating...";
   try {
     const r = await callClaude(key, [{ role: "user", content: "Say hi" }], null, false);
@@ -994,12 +853,11 @@ document.getElementById("apiKeySave").onclick = async () => {
     setApiKey(key);
     document.getElementById("onboarding").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
-    renderAll(); toast("Welcome to Voz!");
+    renderAll(); toast("Connected.");
   } catch (e) { err.textContent = "Error: " + e.message; }
 };
 document.getElementById("apiKeyInput").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("apiKeySave").click(); };
 
-// ── Settings ──
 document.getElementById("settingsBtn").onclick = () => {
   document.getElementById("settingsKey").value = getApiKey();
   document.getElementById("settingsModel").value = getModel();
@@ -1014,16 +872,26 @@ document.getElementById("settingsSave").onclick = () => {
   toast("Settings saved");
 };
 
-// ── Modals ──
-document.onkeydown = (e) => { if (e.key === "Escape") { document.getElementById("addModal").classList.add("hidden"); document.getElementById("settingsModal").classList.add("hidden"); } };
+document.onkeydown = (e) => {
+  if (e.key === "Escape") {
+    document.getElementById("addModal").classList.add("hidden");
+    document.getElementById("settingsModal").classList.add("hidden");
+  }
+};
 document.getElementById("addModal").onclick = (e) => { if (e.target.id === "addModal") e.target.classList.add("hidden"); };
 document.getElementById("settingsModal").onclick = (e) => { if (e.target.id === "settingsModal") e.target.classList.add("hidden"); };
 
-// ── Helpers ──
+// ═══════════════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════════════
+
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3000); }
 
-// ── Boot ──
+// ═══════════════════════════════════════════════════════
+//  Boot
+// ═══════════════════════════════════════════════════════
+
 init();
 </script>
 </body>
