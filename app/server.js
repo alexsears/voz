@@ -23,6 +23,7 @@ function toWslPath(winPath) {
   return winPath.replace(/^([A-Za-z]):/, (_, d) => `/mnt/${d.toLowerCase()}`).replace(/\\/g, "/");
 }
 const WSL_ORCH_DIR = toWslPath(ORCH_DIR);
+const DEFAULT_OPENAI_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini";
 
 const app = express();
 app.use(express.json());
@@ -270,7 +271,7 @@ app.post("/api/project/:name/restart", async (req, res) => {
 
   // Wait for exit, then relaunch — use tmux send-keys directly (no wsl() wrapper)
   // to avoid double-escaping the complex cmd.exe command
-  const launchKeys = `/mnt/c/Windows/System32/cmd.exe /c "set CLAUDECODE= && C:\\\\Users\\\\asear\\\\.local\\\\bin\\\\claude.exe --dangerously-skip-permissions"`;
+  const launchKeys = `/mnt/c/Windows/System32/cmd.exe /c "set CLAUDECODE= && C:\\\\Users\\\\asear\\\\.local\\\\bin\\\\claude.exe"`;
 
   setTimeout(async () => {
     try { await wslExec(`tmux send-keys -t ${SESSION}:${name} C-c`); } catch {}
@@ -366,7 +367,7 @@ app.post("/api/openai/chat", async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: model || "gpt-4o",
+        model: model || DEFAULT_OPENAI_MODEL,
         messages,
         max_tokens: 1024,
         temperature: 0.3,
