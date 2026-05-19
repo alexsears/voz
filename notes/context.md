@@ -35,6 +35,15 @@ Run/test/deploy commands:
 - Stop everything:   ./stop.sh
 - No automated test suite exists yet.
 
+Architectural note (WSL bridging symmetry):
+
+- Two layers bridge from Windows-side caller to WSL tmux: tools/voz.sh
+  (human-facing, `wsl.exe -d Ubuntu -- bash -lc`) and app/server.js
+  (machine-facing, the `wsl()` helper around `wsl -d Ubuntu -- bash -c`).
+  Independent; either could be replaced without breaking the other. If
+  ever consolidating, keep voz.sh: it is the seam users actually touch;
+  the server bridge is replaceable with anything that can reach tmux.
+
 Operational notes:
 
 - Runs on Windows 11 via WSL Ubuntu + tmux; claude.exe launched through
