@@ -80,6 +80,18 @@ echo ">> Step 3: Starting dashboard on http://localhost:4800 ..."
 cd "${SCRIPT_DIR}/app"
 # Kill any existing dashboard process
 pkill -f "node.*voz/app/server.js\|node.*voicemode/app/server.js" 2>/dev/null || true
+# Ensure node is on PATH. nvm only loads in interactive shells by default; we
+# are non-interactive when invoked via `bash -lc` from voz.sh, so source it
+# explicitly. Silently no-ops if nvm is absent or node is system-installed.
+if [[ -z "$(command -v node)" ]]; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # shellcheck disable=SC1091
+  [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
+fi
+if [[ -z "$(command -v node)" ]]; then
+  echo "ERROR: node not found on PATH (nvm sourced or not). Install node in WSL." >&2
+  exit 1
+fi
 nohup node server.js > "${SCRIPT_DIR}/app/dashboard.log" 2>&1 &
 DASH_PID=$!
 echo "   Dashboard PID: $DASH_PID"

@@ -26,7 +26,13 @@ __voz_dir_for() {
 }
 
 # Run a command in WSL Ubuntu's bash. From Git Bash we hop via wsl.exe so the
-# user's WSL profile loads (node/tmux on PATH). From WSL we just exec.
+# user's WSL profile loads (tmux/curl on PATH). From WSL we just exec.
+#
+# Note: arg-strings going through Git Bash -> wsl.exe -- bash -c lose inline
+# variable assignments (the Windows argv layer mangles them). So commands
+# that need node must invoke tools/with-node.sh, which is a real file and
+# is read intact. Do NOT inline `export NVM_DIR=...` here, it silently
+# vanishes from Git Bash.
 __voz_in_wsl() {
   local cmd="$*"
   if [ "$(__voz_env)" = "gitbash" ]; then
@@ -90,12 +96,12 @@ voz() {
       ;;
     replay)
       local proj="${1:?usage: voz replay <project>}"
-      __voz_in_wsl "cd '$wsldir' && node app/lib/replay.js '$proj'"
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/replay.js '$proj'"
       ;;
     scaffold)
       local proj="${1:?usage: voz scaffold <project> <event_id>}"
       local eid="${2:?usage: voz scaffold <project> <event_id>}"
-      __voz_in_wsl "cd '$wsldir' && node app/lib/replay.js '$proj' --scaffold '$eid'"
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/replay.js '$proj' --scaffold '$eid'"
       ;;
     cd)
       cd "$dir" || return 1
