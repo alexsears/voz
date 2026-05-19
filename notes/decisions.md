@@ -52,6 +52,26 @@ Open follow-ups: server-side presence signal (decision.presence.reachable is
 null), the drafter (enables suggested_and_queued + approval events), wiring
 the actual send, and a dashboard timeline view of /api/events/:project.
 
+## 2026-05-19 - Shell helper: one verb from either shell
+
+Decision: tools/voz.sh provides `voz up|down|status|attach|dashboard|logs|
+events|replay|scaffold|cd|help`. Installed idempotently into ~/.bashrc on
+both Git Bash and WSL Ubuntu by tools/install.sh. From Git Bash the helper
+dispatches into WSL via `wsl.exe -d Ubuntu -- bash -lc` so node and tmux
+resolve through the WSL profile; from WSL it runs natively. One verb, same
+spelling, both shells.
+
+Rationale: The friction that kills hobby projects is not remembering how to
+start them. Every command in the workflow (start/stop, tail a JSONL at a path
+you would have to grep for, run replay or scaffold from inside the repo) was
+context-switch and recall. Collapsing all of it under `voz <verb>` is the
+single biggest "easier to use" lever and costs about fifteen minutes.
+
+Consequences: All later ergonomic work (table in dashboard, scaffold-as-
+button, voice-as-entry-point) is downstream of actually using Voz, which is
+downstream of zero activation energy. To uninstall, delete the marked block
+in ~/.bashrc.
+
 ## 2026-05-19 - Replay tool + authoring-by-selection discipline
 
 Decision: app/lib/replay.js is the gate for every classifier/policy change.
