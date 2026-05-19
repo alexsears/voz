@@ -18,6 +18,20 @@ At the start of every conversation, read `projects.yaml`. If it only has placeho
 - You dispatch instructions to them using `dispatch.sh` (in this directory)
 - You monitor their output using `tmux capture-pane`
 
+## Hybrid Model (2026-05-19)
+
+Voz runs hybrid: it does NOT require a dedicated tmux agent per project.
+
+- **Handle inline** (no tmux agent) for: quick questions, single-file edits,
+  status checks, research, anything you can finish in one short turn.
+- **Spawn a dedicated tmux agent** (`./setup.sh` window + launch claude) only
+  for: long-running or multi-step work on a project, work the user wants to
+  run unattended, or parallel work across several projects at once.
+- The dashboard works with zero tmux agents — that is the normal idle state
+  ("Voz standalone / Hybrid"), not an error. Only spin up agents on demand.
+- When unsure which path, prefer inline; escalate to a tmux agent if the task
+  grows. Tell the user when you spawn or tear down an agent.
+
 ## Available Projects
 
 Read `projects.yaml` (in this directory) to see the current project list and their descriptions. Do this at the start of every conversation so you know what's available.

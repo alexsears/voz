@@ -12,6 +12,25 @@ Rationale:
 
 Consequences:
 
+## 2026-05-19 - Voz architecture is hybrid
+
+Decision: Voz runs as a single orchestrator that handles most work inline
+and only spawns a dedicated tmux Claude agent per project for long-running,
+unattended, or parallel multi-project work. The dashboard treats "no tmux
+session" as a normal standalone/hybrid idle state, not an error. See
+CLAUDE.md "Hybrid Model".
+
+Rationale: The original design (one tmux agent per project, always) now
+overlaps with how the user actually works (one Claude window + subagents).
+Hybrid keeps the lightweight default while preserving the ability to run
+real parallel agents when a job needs it.
+
+Consequences: localRefresh() always upserts the Voz session so the orb
+reflects the orchestrator even with zero agents; renderStage() shows
+"Voz standalone / Hybrid" instead of "No session detected". state.tmuxSession
+tracks whether agents are live. Future agent spawn/teardown should be
+on-demand and surfaced to the user.
+
 ## 2026-05-18 - Auto-pilot defaults to safe mode
 
 Decision: Auto-pilot "safe mode" defaults ON (localStorage key

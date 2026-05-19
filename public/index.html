@@ -692,16 +692,19 @@ async function localRefresh() {
       }
       updateStaleness(state.sessions.find(s => s.id === sid));
     }
-    // Handle voz session from the voz field
-    if (data.voz) {
-      const vozSession = state.sessions.find(s => s.id === VOZ_ID);
-      if (vozSession) {
-        vozSession.output = data.voz.output || vozSession.output;
-        vozSession.status = "live";
-      }
+    // Ensure the Voz orchestrator session always exists in local mode.
+    // (Hybrid: Voz runs even when no tmux agents are up.)
+    let vozSession = state.sessions.find(s => s.id === VOZ_ID);
+    if (!vozSession) {
+      vozSession = { id: VOZ_ID, name: "Voz", desc: "Orchestrator", local: true, status: "live", output: "" };
+      state.sessions.push(vozSession);
     }
+    if (data.voz) vozSession.output = data.voz.output || vozSession.output;
+    vozSession.status = "live";
+    // Track whether a tmux agent session is active (false = hybrid/standalone).
+    state.tmuxSession = !!data.session;
     const localNames = new Set(data.projects.map(p => "local-" + p.name));
-    state.sessions = state.sessions.filter(s => !s.local || localNames.has(s.id));
+    state.sessions = state.sessions.filter(s => s.id === VOZ_ID || !s.local || localNames.has(s.id));
     saveState();
   }
   renderAll();
@@ -739,8 +742,10 @@ function renderStage() {
   const hint = document.getElementById("statusHint");
 
   if (!voz) {
-    label.textContent = "No session detected";
-    hint.textContent = "Start tmux session to connect";
+    label.textContent = MODE === "local" ? "Voz standalone" : "No session detected";
+    hint.textContent = MODE === "local"
+      ? "Hybrid mode — tap the orb to talk"
+      : "Connect to the local dashboard";
     stage.className = "stage";
     return;
   }
@@ -774,8 +779,9 @@ function renderStage() {
     hint.textContent = "Tap the orb to respond" + awayLabel;
   } else if (cs.state === "ready" || cs.state === "idle") {
     const agentNote = getAgentNote();
+    const idleHint = (state.tmuxSession === false ? "Hybrid — tap the orb to talk" : "Tap the orb to talk") + awayLabel;
     label.textContent = cs.preview || "Ready";
-    hint.textContent = agentNote || ("Tap the orb to talk" + awayLabel);
+    hint.textContent = agentNote || idleHint;
   } else if (cs.state === "shell") {
     label.textContent = "Offline";
     hint.textContent = "Hit restart to relaunch";

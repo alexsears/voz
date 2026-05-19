@@ -2,10 +2,10 @@
 
 Track unresolved work, blockers, unknowns, and follow-ups here.
 
-- Direction vs. current orchestrator: this Claude Code window is now the
-  "live" orchestrator (per C:\code memory). Decide whether revived Voz is
-  (a) a dashboard/UI layer over the same idea, (b) a standalone tmux stack
-  again, or (c) something new. Roadmap discussion pending with user.
+- RESOLVED 2026-05-19: architecture is hybrid (see decisions.md). Follow-up:
+  define the concrete trigger/criteria + mechanism for Voz to spawn a tmux
+  agent on demand from the dashboard (button + API), and tear it down.
+- Near-term focus chosen by user: voice loop polish + dashboard UX.
 - Auto-pilot safety: safe mode now defaults ON and is toggleable in the UI.
   Open: should unattended AI replies ever be allowed, and with what guardrails
   (allowlist of safe responses, dry-run log, confirmation queue)?
