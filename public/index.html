@@ -1021,7 +1021,17 @@ let isSpeaking = false;
 let lastSpokenOutput = "";
 let ttsEnabled = localStorage.getItem("voz_tts") !== "off";
 let wakeWordEnabled = localStorage.getItem("voz_wake") === "on";
-const WAKE_PHRASES = ["hey voz", "hey boss", "ok voz", "yo voz", "a voz", "hey boz", "hey vos"];
+// Web Speech (US English) routinely hears "Voz" as "voice", "boss", "boz",
+// "vos", or "force". Match the common phonetic neighbors so the wake word
+// actually fires. "voice" alone is left off the list because it would catch
+// normal speech containing the word "voice"; require a leading particle.
+const WAKE_PHRASES = [
+  "hey voz", "hey voice", "hi voice", "hi voz",
+  "hey boss", "hey boz", "hey vos", "hey force", "hey vose", "hey vause",
+  "yo voz", "yo voice",
+  "ok voz", "ok voice", "okay voz", "okay voice",
+  "a voz",
+];
 
 function setupVoice() {
   const orbArea = document.getElementById("orbArea");
@@ -1133,24 +1143,38 @@ function startWakeWordListening() {
   };
 
   wakeRecognition.onresult = (e) => {
-    // Check recent results for wake phrase
+    // Show the most recent interim transcript so the user can SEE what the
+    // browser is hearing. Without this, a wake word that won't fire is
+    // indistinguishable from a mic that's not picking up sound at all.
+    let lastText = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const text = e.results[i][0].transcript.toLowerCase().trim();
+      if (text) lastText = text;
       const isWake = WAKE_PHRASES.some(w => text.includes(w));
       if (isWake) {
-        // Wake word detected!
+        console.log("[wake] matched:", text);
         playPing("wake");
         stopWakeWordListening();
-        // Small delay then start active recording
         setTimeout(() => startRecording(), 300);
         return;
       }
     }
+    if (lastText) {
+      console.log("[wake] heard:", lastText);
+      document.getElementById("statusHint").textContent =
+        "heard: " + (lastText.length > 60 ? lastText.slice(-60) : lastText);
+    }
   };
 
   wakeRecognition.onerror = (e) => {
+    console.log("[wake] error:", e.error);
     isWakeListening = false;
-    // Restart after errors (except abort)
+    // Surface mic-permission issues; everything else just retries quietly.
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      document.getElementById("statusHint").textContent =
+        "microphone blocked. click the lock icon and allow mic.";
+      return;
+    }
     if (e.error !== "aborted" && wakeWordEnabled) {
       setTimeout(startWakeWordListening, 2000);
     }
