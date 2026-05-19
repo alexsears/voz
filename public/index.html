@@ -1169,12 +1169,18 @@ function startWakeWordListening() {
   wakeRecognition.onerror = (e) => {
     console.log("[wake] error:", e.error);
     isWakeListening = false;
-    // Surface mic-permission issues; everything else just retries quietly.
+    const hint = document.getElementById("statusHint");
+    // Errors that won't fix themselves: tell the user, stop the retry loop.
     if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-      document.getElementById("statusHint").textContent =
-        "microphone blocked. click the lock icon and allow mic.";
+      hint.textContent = "microphone blocked. click the lock icon, allow mic, refresh.";
       return;
     }
+    if (e.error === "audio-capture") {
+      hint.textContent =
+        "no mic available. check Windows mic privacy + close other apps using the mic, then refresh.";
+      return;
+    }
+    // no-speech / network / aborted: harmless, just restart the listener.
     if (e.error !== "aborted" && wakeWordEnabled) {
       setTimeout(startWakeWordListening, 2000);
     }
