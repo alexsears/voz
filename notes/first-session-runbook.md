@@ -40,6 +40,30 @@ Cheaper to discover any mismatch with two events than two hundred.
 Expected: "Replay <project>: 1 capture, 0 changed vs recorded." If replay
 itself errors, that is the bug to fix before anything else.
 
+## Using voice
+
+The dashboard has a wake-word orb baked in (browser Web Speech API), so
+nothing extra to install. Requirements:
+
+1. Open the dashboard in Chrome or Edge (Web Speech API does not work in
+   Firefox). Localhost is fine.
+2. Click the `MIC` button in the topbar. Allow microphone permission.
+3. Say "Hey Voz" then your command. Browser STT transcribes it; the
+   dashboard dispatches to the Voz Claude in tmux; replies come back as
+   TTS so you do not have to look at the screen.
+
+For the proactive planning conversation specifically, the phrase that
+triggers it is one of: "let's plan", "what should we work on", "plan
+today", "let's get started". The Voz Claude reads `CLAUDE.md`'s Daily
+Planning section and walks you through hot/warm candidates one at a time.
+Answers like "yes", "no", "never ask about that again" all work.
+
+The orchestrator window (this Claude Code session, the one that becomes
+Voz when you attach via `voz attach`) also has voicemode MCP, so you can
+have the same conversation in the terminal without the browser if you
+prefer. From inside the voz tmux window: say "let's have a voice
+conversation" or run `/voicemode:converse`.
+
 ## What NOT to do in the first session
 
 **Do not scaffold a policy entry.** The first session is a small sample.

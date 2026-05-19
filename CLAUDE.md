@@ -65,6 +65,38 @@ You can add, remove, and list projects dynamically. The config lives in `project
 ### "List my projects" / "What projects do I have?"
 Read `projects.yaml` and summarize each project with its name, path, and description.
 
+## Daily Planning (conversational, voice-friendly)
+
+When the user says any of: "let's plan", "what should we work on", "what's
+active", "plan today", "let's get started", or anything synonymous: do NOT
+guess. Run the planner and walk the user through the candidates.
+
+1. Run `node app/lib/plan.js --json` and parse the output. You will get:
+   - `yaml`: the current projects.yaml entries
+   - `denylist`: never-ask names (skip these silently)
+   - `candidates`: an array sorted hot -> warm -> cold, each with `name`,
+     `description`, `in_yaml`, `denied`, `dirty`, `dirty_files`, `branch`,
+     `age_days`, `warmth`.
+2. Skip anything where `in_yaml || denied || warmth === "cold"`.
+3. For each remaining candidate, ASK the user (one prompt at a time, voice
+   if the conversation is voice). Make the prompt informative:
+   - Hot:  "wealthplan has uncommitted changes (12 files on master). Want
+           to pick up where you left off?" (default if no reply: yes)
+   - Warm: "jobs had a commit 3 days ago. Working on it today?"
+           (default if no reply: no)
+4. Apply the answer:
+   - yes -> `node app/lib/projects.js add <name>` (auto-fills path and
+     description; do NOT specify them unless the user overrides)
+   - no  -> do nothing (will ask again next session)
+   - never (or "stop asking", "drop it", "put it away") -> append the name
+     to `app/voz.denylist.json` under `never_ask`, save the JSON
+5. When done, summarize: "Added X. Skipped Y. Won't ask about Z again."
+   Then if anything was added, tell the user to run `voz down && voz up`
+   so the new tmux windows spawn, or offer to run it for them.
+
+This is the proactive flow the user asked for: don't make them remember
+which projects are warm; surface the signal and ask.
+
 ## Dispatching Tasks
 
 To send a task to a project:
