@@ -103,6 +103,25 @@ voz() {
       local eid="${2:?usage: voz scaffold <project> <event_id>}"
       __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/replay.js '$proj' --scaffold '$eid'"
       ;;
+    list)
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/projects.js list"
+      ;;
+    scan)
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/projects.js scan"
+      ;;
+    add)
+      local pname="${1:?usage: voz add <name> [path] [description]}"
+      local ppath="${2:-}"
+      local pdesc="${3:-}"
+      [ $# -gt 0 ] && shift
+      [ $# -gt 0 ] && shift
+      [ $# -gt 0 ] && shift
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/projects.js add '$pname' '$ppath' '$pdesc'"
+      ;;
+    remove)
+      local pname="${1:?usage: voz remove <name>}"
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/projects.js remove '$pname'"
+      ;;
     cd)
       cd "$dir" || return 1
       ;;
@@ -119,6 +138,10 @@ voz — orchestrator command (env: $env, dir: $dir)
   voz events <project>         GET /api/events/<project> (pretty if jq)
   voz replay <project>         re-run classifier+policy, diff vs recorded
   voz scaffold <p> <event_id>  emit a policy entry stub from a real ask
+  voz list                     list projects in projects.yaml
+  voz scan                     diff projects.yaml vs C:\\code\\* (read-only)
+  voz add <name> [path] [d]    add a project to projects.yaml
+  voz remove <name>            remove a project from projects.yaml
   voz cd                       cd into the voz repo
 EOF
       ;;
