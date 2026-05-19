@@ -12,6 +12,46 @@ Rationale:
 
 Consequences:
 
+## 2026-05-19 - Auto-pilot writer contract (FROZEN)
+
+Decision: The auto-pilot observability/safety writer is frozen as built in
+app/lib/{eventlog,classifier,policy}.js + app/policy.json:
+
+- Three durable event types: asking_state (fact about the worker), decision
+  (fact about Voz, references asking_event_id), approval (future: human
+  approving a drafted reply). `dispatch` is logged too as a provenance anchor.
+- Lookup key is (canonical_key, provenance). dispatched and autonomous are
+  INDEPENDENT policy tables, not an inheritance hierarchy.
+- Provenance from a dispatch context: opened on /dispatch, closed when the
+  pane is observed idle. Uncertainty (context past a 15-min safety cap, or
+  lost on restart) downgrades to "autonomous", the stricter table.
+- Classifier normalizes a `capture-pane -pJ` capture (tmux rejoins its own
+  wraps; no heuristic de-wrapping). Safety payload (verbatim command / file
+  list) is a first-class field, NEVER folded into the canonical key. No live
+  region positively identified => indeterminate => never auto-answers.
+- Guards split: capture-pure (deterministic under replay) vs history-
+  dependent. The recurrence guard counts prior DECISION events with
+  outcome=answered for the exact tuple (the closed-loop signal), not
+  asking_state events. Recurrence params {max_count, window_seconds} are
+  per policy entry.
+- Versioning: every decision stores policy_version AND classifier_version;
+  asking_state stores the raw capture, so history replays deterministically.
+- Decision outcomes: answered | suggested_and_queued | queued_unknown |
+  abstained_indeterminate.
+
+Rationale: See the design dialogue. Core principle governing every
+patience-vs-speed choice: the cost asymmetry is unbounded (too patient costs
+a retry; too eager costs whatever the command does). Urgency never grants
+authority, only notification volume.
+
+Consequences: policy.json ships enabled=false with empty tables, so v1 can
+ONLY observe/classify/log; outcome "answered" is unreachable by construction.
+The event log is read in the decision hot path (recurrence guard), so it is
+not a write-only sink. app/events/ is gitignored (captured text is sensitive).
+Open follow-ups: server-side presence signal (decision.presence.reachable is
+null), the drafter (enables suggested_and_queued + approval events), wiring
+the actual send, and a dashboard timeline view of /api/events/:project.
+
 ## 2026-05-19 - Voz architecture is hybrid
 
 Decision: Voz runs as a single orchestrator that handles most work inline

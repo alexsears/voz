@@ -4,6 +4,9 @@ import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { promisify } from "util";
+import * as eventlog from "./lib/eventlog.js";
+import { classify, ASKING_WIDGETS, IDLE_WIDGETS } from "./lib/classifier.js";
+import { decide } from "./lib/policy.js";
 
 const execAsync = promisify(exec);
 
@@ -96,7 +99,7 @@ async function sessionExists() {
 async function capturePane(windowName, lines = 40) {
   try {
     const { stdout: raw } = await execAsync(
-      wsl(`tmux capture-pane -t ${SESSION}:${windowName} -p 2>/dev/null`),
+      wsl(`tmux capture-pane -t ${SESSION}:${windowName} -pJ 2>/dev/null`),
       { ...execOpts, timeout: 5000 }
     );
     const allLines = raw.split("\n");
@@ -125,7 +128,7 @@ async function windowExists(name) {
 async function captureAllPanes(projectNames, lines = 20) {
   // Build a single bash command that captures all panes
   const cmds = projectNames.map(
-    name => `echo "___PANE_${name}___"; tmux capture-pane -t ${SESSION}:${name} -p 2>/dev/null || echo "___NOWINDOW___"`
+    name => `echo "___PANE_${name}___"; tmux capture-pane -t ${SESSION}:${name} -pJ 2>/dev/null || echo "___NOWINDOW___"`
   );
   const combined = cmds.join("; ");
 
@@ -226,6 +229,14 @@ app.post("/api/project/:name/dispatch", async (req, res) => {
       wsl(`bash '${WSL_ORCH_DIR}/dispatch.sh' '${req.params.name}' '${safeMsg}'`),
       { ...execOpts, timeout: 10000 }
     );
+    // Open the provenance context and anchor it in the log. Asks observed
+    // while this is open attribute to this dispatch ("dispatched").
+    const dispatchId = eventlog.openDispatchContext(req.params.name);
+    await eventlog.appendEvent(req.params.name, {
+      type: "dispatch",
+      dispatch_id: dispatchId,
+      message,
+    });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -377,6 +388,93 @@ app.post("/api/openai/chat", async (req, res) => {
     if (data.error) return res.status(400).json({ error: data.error.message || data.error });
     const reply = data.choices?.[0]?.message?.content || "";
     res.json({ ok: true, reply });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Auto-pilot observability: observe -> classify -> decide -> log ---
+//
+// v1 ONLY observes and logs. Even a decision whose outcome is "answered" is
+// not executed here; the policy ships disabled so that outcome is unreachable
+// anyway. Wiring the actual send is a separate, later step gated on a
+// reviewed, enabled policy and a human-approved suggested path.
+const lastAsk = new Map(); // project -> last asking screen_hash (dedupe)
+let observing = false;
+
+async function observeOnce() {
+  if (observing) return;
+  if (!(await sessionExists())) return;
+  observing = true;
+  try {
+    const projects = parseProjects().map((p) => p.name).filter((n) => n !== "voz");
+    if (!projects.length) return;
+    const panes = await captureAllPanes(projects, 120);
+    for (const name of projects) {
+      const raw = panes[name];
+      if (raw == null) continue; // window not present
+
+      let classified;
+      try { classified = classify(raw); } catch { continue; }
+
+      if (IDLE_WIDGETS.has(classified.widget_type)) {
+        // Dispatched work finished: close the provenance context.
+        eventlog.closeDispatchContext(name);
+        lastAsk.delete(name);
+        continue;
+      }
+      if (!ASKING_WIDGETS.has(classified.widget_type)) continue;
+
+      // Diff-as-signal: only a new, distinct ask emits events. An identical
+      // screen on the next poll is not a new fact.
+      if (lastAsk.get(name) === classified.screen_hash) continue;
+      lastAsk.set(name, classified.screen_hash);
+
+      const prov = eventlog.resolveProvenance(name);
+
+      // The ask is a fact about the worker.
+      const asking = await eventlog.appendEvent(name, {
+        type: "asking_state",
+        widget_type: classified.widget_type,
+        canonical_key: classified.canonical_key,
+        safety_payload: classified.safety_payload,
+        extracted_values: classified.extracted_values,
+        signals: classified.signals,
+        classifier_version: classified.classifier_version,
+        screen_hash: classified.screen_hash,
+        live_region_identified: classified.live_region_identified,
+        provenance: prov.provenance,
+        triggering_dispatch_id: prov.triggering_dispatch_id,
+        raw_capture: raw, // stored for deterministic replay against new versions
+      });
+
+      // The decision is a distinct fact about Voz.
+      const d = await decide({
+        classified,
+        provenance: prov.provenance,
+        historyFn: (ck, p, win) =>
+          eventlog.recentAnsweredDecisions(name, ck, p, win),
+      });
+      await eventlog.appendEvent(name, {
+        type: "decision",
+        asking_event_id: asking.id,
+        triggering_dispatch_id: prov.triggering_dispatch_id,
+        presence: { reachable: null }, // server has no presence signal yet
+        ...d,
+      });
+    }
+  } finally {
+    observing = false;
+  }
+}
+setInterval(observeOnce, 6000);
+
+// Event log read for the dashboard timeline (the observability payoff).
+app.get("/api/events/:project", async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+  try {
+    const events = await eventlog.readEvents(req.params.project, limit);
+    res.json({ project: req.params.project, events });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

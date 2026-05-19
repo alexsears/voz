@@ -9,5 +9,8 @@ app/.dashboard.pid
 node_modules/
 .vercel/
 
+# Event log: captured pane text may contain sensitive content; never commit
+app/events/
+
 # Scratch
 app/test_page.html

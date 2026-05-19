@@ -1,0 +1,9 @@
+{
+  "_comment": "Auto-pilot policy object. Ships EMPTY and DISABLED on purpose. While enabled=false (or a (canonical_key, provenance) has no entry) every asking widget resolves to queued_unknown and NOTHING is auto-answered. Populate entries only against real captures collected in app/events/. Each table is keyed by canonical_key. dispatched and autonomous are INDEPENDENT tables, not an inheritance hierarchy: a prompt safe to auto-answer autonomously may be one you want to confirm yourself under dispatch, and vice-versa. Use the diff between them as an audit artifact.",
+  "enabled": false,
+  "defaults": {
+    "recurrence": { "max_count": 3, "window_seconds": 120 }
+  },
+  "dispatched": {},
+  "autonomous": {}
+}
