@@ -14,8 +14,11 @@ Track unresolved work, blockers, unknowns, and follow-ups here.
     outcome and the approval event (ask -> suggest -> approve -> send chain).
   - Wiring the actual send, gated on a reviewed, enabled policy.
   - Dashboard timeline view consuming GET /api/events/:project.
+  - DONE 2026-05-19: deterministic replay tool (app/lib/replay.js) with
+    synthetic-history recurrence and --scaffold authoring-by-selection.
   - Tune classifier heuristics against the real captured corpus once a live
-    tmux session has produced asking_state events with raw_capture.
+    tmux session has produced asking_state events with raw_capture. Gate
+    every change on `node app/lib/replay.js <project>` (read the diff).
   - Latency: freshness numeric bound for the recurrence query is a config
     tuning value (ship conservative), not a design question.
 - No automated tests exist. Decide minimal test coverage for server.js

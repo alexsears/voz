@@ -52,6 +52,36 @@ Open follow-ups: server-side presence signal (decision.presence.reachable is
 null), the drafter (enables suggested_and_queued + approval events), wiring
 the actual send, and a dashboard timeline view of /api/events/:project.
 
+## 2026-05-19 - Replay tool + authoring-by-selection discipline
+
+Decision: app/lib/replay.js is the gate for every classifier/policy change.
+It re-runs each logged raw_capture through the current classifier+policy and
+diffs against the recorded outcome. The recurrence guard is fed a SYNTHETIC
+decision history reconstructed from the replay run in chronological order
+(each event's own ts as "now"), never the live log, so replay is
+deterministic even with policy enabled. Provenance is taken from the recorded
+asking_state event, not re-derived (it is a runtime fact).
+
+Policy entries are NEVER hand-written. They are created with
+`replay.js <project> --scaffold <asking_event_id>`, which keys the entry off
+exactly what the classifier emitted for a real capture. Authoring is a
+selection over the corpus, not a specification.
+
+Rationale: A wrong-widget mislabel is cheap in v1 (nothing auto-answers) but
+is a latent classifier-policy mismatch: a hand-written key that the classifier
+never emits never matches, and you discover it while debugging across the
+classifier-policy boundary, the worst place to debug. Pairwise validation
+(one entry, against one real capture) keeps the contract honest without
+validating the classifier in the abstract. The replay tool is cheap to build
+before there is a corpus and a painful retrofit after two classifier versions
+shipped on vibes.
+
+Consequences: classifier_version stops being mere audit metadata and becomes
+the input that answers "what did vN do to every capture vN-1 handled", which
+is the question that decides whether vN ships. Workflow before shipping any
+classifier/policy change: run replay, read the diff, only ship if the diff is
+intended.
+
 ## 2026-05-19 - Voz architecture is hybrid
 
 Decision: Voz runs as a single orchestrator that handles most work inline

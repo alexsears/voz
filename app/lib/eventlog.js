@@ -89,7 +89,7 @@ export function resolveProvenance(project) {
 
 // --- Reads ---
 
-async function readAllEvents(project) {
+export async function readAllEvents(project) {
   const file = eventFile(project);
   if (!existsSync(file)) return [];
   const raw = await readFile(file, "utf-8");
