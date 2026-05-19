@@ -128,7 +128,7 @@ function cmdScan() {
   console.log(`  stale (in voz, missing):    ${stale.map((p) => p.name).join(", ") || "(none)"}`);
   console.log("");
   if (!candidates.length) {
-    console.log("candidates: (none — every project-looking dir under /mnt/c/code is already in voz)");
+    console.log("candidates: (none. every project-looking dir under /mnt/c/code is already in voz)");
     return;
   }
   console.log(`candidates (on disk, not in voz): ${candidates.length}`);

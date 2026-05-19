@@ -1,4 +1,4 @@
-# voz.sh — shell helper. Sourced from ~/.bashrc on both Git Bash and WSL.
+# voz.sh: shell helper. Sourced from ~/.bashrc on both Git Bash and WSL.
 #
 # Subcommands: up, down, status, attach, dashboard, logs <p>, events <p>,
 #              replay <p>, scaffold <p> <id>, cd, help
@@ -127,7 +127,7 @@ voz() {
       ;;
     help|-h|--help|"")
       cat <<EOF
-voz — orchestrator command (env: $env, dir: $dir)
+voz: orchestrator command (env: $env, dir: $dir)
 
   voz up                       start the stack (tmux + dashboard + Voz)
   voz down                     stop everything
