@@ -27,7 +27,7 @@ Voz runs hybrid: it does NOT require a dedicated tmux agent per project.
 - **Spawn a dedicated tmux agent** (`./setup.sh` window + launch claude) only
   for: long-running or multi-step work on a project, work the user wants to
   run unattended, or parallel work across several projects at once.
-- The dashboard works with zero tmux agents — that is the normal idle state
+- The dashboard works with zero tmux agents. That is the normal idle state
   ("Voz standalone / Hybrid"), not an error. Only spin up agents on demand.
 - When unsure which path, prefer inline; escalate to a tmux agent if the task
   grows. Tell the user when you spawn or tear down an agent.
