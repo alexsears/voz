@@ -23,7 +23,7 @@ const CODE_ROOT = "/mnt/c/code";
 
 // Mirrors server.js parseProjects(); kept compatible with that parser since
 // the same file is consumed there.
-function parseProjects() {
+export function parseProjects() {
   if (!existsSync(CONFIG)) return [];
   const lines = readFileSync(CONFIG, "utf-8").split("\n");
   const projects = [];
@@ -53,7 +53,7 @@ function looksLikeProject(name, fullPath) {
   return false;
 }
 
-function discoverCandidates() {
+export function discoverCandidates() {
   const out = [];
   let entries;
   try { entries = readdirSync(CODE_ROOT, { withFileTypes: true }); }
@@ -71,7 +71,7 @@ function discoverCandidates() {
 
 // Pull a one-line description from README.md or CLAUDE.md: the first
 // non-blank, non-heading, non-image, non-pure-link line. Bounded to 80 chars.
-function describeFromReadme(projectPath) {
+export function describeFromReadme(projectPath) {
   for (const fname of ["README.md", "CLAUDE.md"]) {
     const f = join(projectPath, fname);
     if (!existsSync(f)) continue;
@@ -159,25 +159,18 @@ function escDesc(s) {
   return out.replace(/"/g, "'").trim();
 }
 
-function cmdAdd(name, path, description) {
-  if (!name) { console.error("usage: voz add <name> [path] [description]"); process.exit(1); }
+// Pure-ish: append an entry to projects.yaml. Returns the added entry or
+// throws on validation errors. No console output — callers print as they like.
+export function addProjectEntry({ name, path, description }) {
+  if (!name) throw new Error("name required");
   const ps = parseProjects();
-  if (ps.some((p) => p.name === name)) {
-    console.error(`already in projects.yaml: ${name}`);
-    process.exit(1);
-  }
+  if (ps.some((p) => p.name === name)) throw new Error(`already in projects.yaml: ${name}`);
   const resolvedPath = path && path.trim() ? path.trim() : `${CODE_ROOT}/${name}`;
-  if (!existsSync(resolvedPath)) {
-    console.error(`path does not exist: ${resolvedPath}`);
-    console.error(`(pass an explicit path as the second arg, or create the dir first)`);
-    process.exit(1);
-  }
+  if (!existsSync(resolvedPath)) throw new Error(`path does not exist: ${resolvedPath}`);
   const desc = description && description.trim()
     ? description.trim()
     : (describeFromReadme(resolvedPath) || `${name} project`);
 
-  // Append, preserving the existing file. If the file is empty/missing,
-  // initialize with the `projects:` header.
   let body = "";
   if (existsSync(CONFIG)) body = readFileSync(CONFIG, "utf-8");
   if (!/^\s*projects\s*:/m.test(body)) body = "projects:\n" + body;
@@ -187,10 +180,24 @@ function cmdAdd(name, path, description) {
     `    path: ${resolvedPath}\n` +
     `    description: "${escDesc(desc)}"\n`;
   writeFileSync(CONFIG, body, "utf-8");
-  console.log(`added ${name}`);
-  console.log(`  path: ${resolvedPath}`);
-  console.log(`  desc: ${desc}`);
-  console.log(`(restart voz with 'voz down && voz up' to spawn a tmux window for it)`);
+  return { name, path: resolvedPath, description: desc };
+}
+
+function cmdAdd(name, path, description) {
+  if (!name) { console.error("usage: voz add <name> [path] [description]"); process.exit(1); }
+  try {
+    const e = addProjectEntry({ name, path, description });
+    console.log(`added ${e.name}`);
+    console.log(`  path: ${e.path}`);
+    console.log(`  desc: ${e.description}`);
+    console.log(`(restart voz with 'voz down && voz up' to spawn a tmux window for it)`);
+  } catch (err) {
+    console.error(err.message);
+    if (/path does not exist/.test(err.message)) {
+      console.error(`(pass an explicit path as the second arg, or create the dir first)`);
+    }
+    process.exit(1);
+  }
 }
 
 function cmdRemove(name) {
@@ -219,13 +226,19 @@ function cmdRemove(name) {
   console.log(`(restart voz with 'voz down && voz up' so the tmux window goes away)`);
 }
 
-const [, , sub, ...args] = process.argv;
-switch (sub) {
-  case "list":   cmdList(); break;
-  case "scan":   cmdScan(); break;
-  case "add":    cmdAdd(args[0], args[1], args.slice(2).join(" ")); break;
-  case "remove": cmdRemove(args[0]); break;
-  default:
-    console.error("usage: node app/lib/projects.js <list|scan|add|remove> [...]");
-    process.exit(1);
+// Only run the CLI when this file is the entry point. When imported by
+// plan.js etc., the dispatch block is skipped.
+import { pathToFileURL } from "url";
+const isEntry = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntry) {
+  const [, , sub, ...args] = process.argv;
+  switch (sub) {
+    case "list":   cmdList(); break;
+    case "scan":   cmdScan(); break;
+    case "add":    cmdAdd(args[0], args[1], args.slice(2).join(" ")); break;
+    case "remove": cmdRemove(args[0]); break;
+    default:
+      console.error("usage: node app/lib/projects.js <list|scan|add|remove> [...]");
+      process.exit(1);
+  }
 }

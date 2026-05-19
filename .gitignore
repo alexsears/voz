@@ -12,5 +12,8 @@ node_modules/
 # Event log: captured pane text may contain sensitive content; never commit
 app/events/
 
+# Per-user planning denylist (which projects to stop asking about)
+app/voz.denylist.json
+
 # Scratch
 app/test_page.html

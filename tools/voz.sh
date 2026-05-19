@@ -109,6 +109,10 @@ voz() {
     scan)
       __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/projects.js scan"
       ;;
+    plan)
+      # Interactive Y/n/never prompts for hot+warm candidates not in yaml.
+      __voz_in_wsl "cd '$wsldir' && tools/with-node.sh node app/lib/plan.js"
+      ;;
     add)
       local pname="${1:?usage: voz add <name> [path] [description]}"
       local ppath="${2:-}"
@@ -140,6 +144,7 @@ voz: orchestrator command (env: $env, dir: $dir)
   voz scaffold <p> <event_id>  emit a policy entry stub from a real ask
   voz list                     list projects in projects.yaml
   voz scan                     diff projects.yaml vs C:\\code\\* (read-only)
+  voz plan                     proactive: ask about hot/warm candidates (Y/n/never)
   voz add <name> [path] [d]    add a project to projects.yaml
   voz remove <name>            remove a project from projects.yaml
   voz cd                       cd into the voz repo
