@@ -1,6 +1,6 @@
 import express from "express";
 import { exec } from "child_process";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { promisify } from "util";
@@ -15,7 +15,17 @@ const ORCH_DIR = join(__dirname, "..");
 const CONFIG = join(ORCH_DIR, "projects.yaml");
 const SESSION = "voz";
 const PORT = process.env.PORT || 4800;
-const WSL = "wsl -d Ubuntu --";
+
+// The WSL bridge is a no-op when this process is ALREADY inside WSL (the
+// /proc/version check is the canonical Microsoft signature). Without this,
+// `wsl -d Ubuntu -- bash -c ...` from inside WSL re-enters WSL through
+// wsl.exe and tmux calls fail silently. start.sh launches us from WSL, so
+// this is the path that actually matters today.
+const IN_WSL = (() => {
+  try { return /microsoft/i.test(readFileSync("/proc/version", "utf-8")); }
+  catch { return false; }
+})();
+const WSL = IN_WSL ? "" : "wsl -d Ubuntu --";
 
 // Clean env: strip CLAUDECODE so child processes don't think they're nested
 const cleanEnv = { ...process.env };
@@ -74,8 +84,13 @@ function parseProjects() {
 }
 
 // --- Async helpers (non-blocking) ---
+// `wsl()` wraps a command so it can be executed in the WSL Ubuntu environment.
+// When this process is already inside WSL, the wrapper just becomes `bash -c`;
+// re-entering through `wsl.exe` from inside WSL silently breaks tmux calls.
 function wsl(cmd) {
-  return `${WSL} bash -c "unset CLAUDECODE 2>/dev/null; ${cmd.replace(/"/g, '\\"')}"`;
+  const escaped = cmd.replace(/"/g, '\\"');
+  const inner = `bash -c "unset CLAUDECODE 2>/dev/null; ${escaped}"`;
+  return WSL ? `${WSL} ${inner}` : inner;
 }
 
 const execOpts = { encoding: "utf-8", env: cleanEnv };
@@ -288,13 +303,16 @@ app.post("/api/project/:name/restart", async (req, res) => {
     try { await wslExec(`tmux send-keys -t ${SESSION}:${name} C-c`); } catch {}
     setTimeout(async () => {
       try {
-        // Send the launch command character-by-character via -l, then Enter
+        // Send the launch command character-by-character via -l, then Enter.
+        // Run through WSL only when not already inside it; otherwise tmux is
+        // already on this side of the bridge.
+        const prefix = WSL ? `${WSL} ` : "";
         await execAsync(
-          `wsl -d Ubuntu -- tmux send-keys -t ${SESSION}:${name} -l '${launchKeys}'`,
+          `${prefix}tmux send-keys -t ${SESSION}:${name} -l '${launchKeys}'`,
           execOpts
         );
         await execAsync(
-          `wsl -d Ubuntu -- tmux send-keys -t ${SESSION}:${name} Enter`,
+          `${prefix}tmux send-keys -t ${SESSION}:${name} Enter`,
           execOpts
         );
       } catch (e) { console.error("[restart] relaunch error:", e.message); }
