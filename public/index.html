@@ -1087,41 +1087,75 @@ function setupVoice() {
   recognition.lang = "en-US";
 
   recognition.onstart = () => {
+    console.log("[voice] active recording started");
     isRecording = true;
     renderAll();
   };
 
   recognition.onresult = (e) => {
     const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
+    const last = e.results[e.results.length - 1];
     showTranscript(transcript);
-
-    if (e.results[e.results.length - 1].isFinal) {
+    if (last.isFinal) {
+      console.log("[voice] final:", JSON.stringify(transcript));
       stopRecording();
       const msg = transcript.trim();
       if (msg) {
         document.getElementById("statusLabel").textContent = "Sending...";
         document.getElementById("stage").className = "stage stage--working";
         sendVoiceTranscript(msg);
+      } else {
+        console.log("[voice] final but empty after trim, nothing to send");
       }
+    } else {
+      console.log("[voice] interim:", JSON.stringify(transcript));
     }
   };
 
   recognition.onerror = (e) => {
+    console.log("[voice] error:", e.error);
     stopRecording();
-    if (e.error === "no-speech") { /* silent */ }
-    else if (e.error !== "aborted") toast("Mic error: " + e.error);
+    if (e.error === "no-speech") {
+      // Likely "no-speech": active recording opened on a silent moment
+      // because wake-word already captured the whole utterance and we
+      // failed to extract a remainder. Surface it so this is visible.
+      document.getElementById("statusHint").textContent = "no speech captured";
+    } else if (e.error !== "aborted") {
+      toast("Mic error: " + e.error);
+    }
   };
 
   // Send a voice transcript. If the page is still in cloud mode but the
   // local dashboard is reachable right now, promote to local first so the
   // dispatch actually goes somewhere instead of being silently dropped.
   async function sendVoiceTranscript(msg) {
+    console.log("[voice] sendVoiceTranscript:", JSON.stringify(msg), "MODE=" + MODE);
     if (MODE !== "local") {
       const m = await detectMode();
       if (m === "local") enterLocalMode();
     }
     if (MODE === "local") {
-      localDispatch(VOZ_ID, msg);
+      // Direct fetch so we can log the actual response.
+      const url = LOCAL_API + "/api/project/" + VOZ_ID.replace("local-", "") + "/dispatch";
+      try {
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg }),
+        });
+        const body = await r.json().catch(() => ({}));
+        console.log("[voice] dispatch", r.status, body);
+        if (!r.ok) {
+          toast("Dispatch failed (" + r.status + "): " + (body.error || r.statusText));
+        } else {
+          setTimeout(localRefresh, 500);
+          setTimeout(localRefresh, 2000);
+          setTimeout(localRefresh, 4000);
+        }
+      } catch (e) {
+        console.log("[voice] dispatch threw:", e.message);
+        toast("Dispatch error: " + e.message);
+      }
     } else {
       toast("Voice heard but not sent: dashboard is in CLOUD mode. Refresh after 'voz up'.");
       console.log("[voice] dropped (cloud mode):", msg);
@@ -1130,11 +1164,11 @@ function setupVoice() {
   window.__sendVoiceTranscript = sendVoiceTranscript;
 
   recognition.onend = () => {
+    console.log("[voice] active recording ended (wakeWordEnabled=" + wakeWordEnabled + ")");
     if (isRecording) {
       isRecording = false;
       renderAll();
     }
-    // Restart wake word listening if enabled
     if (wakeWordEnabled && !isRecording) {
       setTimeout(startWakeWordListening, 500);
     }
@@ -1199,19 +1233,32 @@ function startWakeWordListening() {
   };
 
   wakeRecognition.onresult = (e) => {
-    // Show the most recent interim transcript so the user can SEE what the
-    // browser is hearing. Without this, a wake word that won't fire is
-    // indistinguishable from a mic that's not picking up sound at all.
     let lastText = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const text = e.results[i][0].transcript.toLowerCase().trim();
       if (text) lastText = text;
-      const isWake = WAKE_PHRASES.some(w => text.includes(w));
-      if (isWake) {
-        console.log("[wake] matched:", text);
+      const matched = WAKE_PHRASES.find(w => text.includes(w));
+      if (matched) {
+        // The wake phrase is part of a longer utterance: "hey voz let's plan".
+        // Extract whatever followed the wake phrase and dispatch it directly,
+        // because by the time we could start a fresh recording the user has
+        // already finished speaking and we'd record silence.
+        const idx = text.indexOf(matched);
+        const remainder = text.slice(idx + matched.length).replace(/^[,.\s]+/, "").trim();
+        console.log("[wake] matched:", matched, "| full:", text, "| remainder:", JSON.stringify(remainder));
         playPing("wake");
         stopWakeWordListening();
-        setTimeout(() => startRecording(), 300);
+        if (remainder.length >= 2) {
+          // The user already said their command in the same breath. Send it.
+          document.getElementById("statusLabel").textContent = "Sending...";
+          document.getElementById("stage").className = "stage stage--working";
+          sendVoiceTranscript(remainder);
+        } else {
+          // Just the wake phrase by itself. Open a recording window for the
+          // follow-on command.
+          console.log("[wake] no remainder, starting active recording");
+          setTimeout(() => startRecording(), 300);
+        }
         return;
       }
     }
