@@ -1086,29 +1086,42 @@ function setupVoice() {
   recognition.interimResults = true;
   recognition.lang = "en-US";
 
+  // Last interim transcript seen during this active recording. Web Speech
+  // sometimes ends the session (continuous=false) WITHOUT marking the last
+  // result as final, so the dispatch fires from onend using this if no
+  // final ever arrived.
+  let _voiceLastInterim = "";
+  let _voiceDispatched = false;
+
   recognition.onstart = () => {
     console.log("[voice] active recording started");
+    _voiceLastInterim = "";
+    _voiceDispatched = false;
     isRecording = true;
     renderAll();
   };
+
+  function _dispatchActiveVoice(msg, reasonLabel) {
+    if (_voiceDispatched) return;
+    _voiceDispatched = true;
+    const clean = msg.trim();
+    if (!clean) { console.log("[voice] " + reasonLabel + " but empty"); return; }
+    console.log("[voice] " + reasonLabel + ":", JSON.stringify(clean));
+    document.getElementById("statusLabel").textContent = "Sending...";
+    document.getElementById("stage").className = "stage stage--working";
+    sendVoiceTranscript(clean);
+  }
 
   recognition.onresult = (e) => {
     const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
     const last = e.results[e.results.length - 1];
     showTranscript(transcript);
     if (last.isFinal) {
-      console.log("[voice] final:", JSON.stringify(transcript));
       stopRecording();
-      const msg = transcript.trim();
-      if (msg) {
-        document.getElementById("statusLabel").textContent = "Sending...";
-        document.getElementById("stage").className = "stage stage--working";
-        sendVoiceTranscript(msg);
-      } else {
-        console.log("[voice] final but empty after trim, nothing to send");
-      }
+      _dispatchActiveVoice(transcript, "final");
     } else {
       console.log("[voice] interim:", JSON.stringify(transcript));
+      _voiceLastInterim = transcript;
     }
   };
 
@@ -1164,10 +1177,17 @@ function setupVoice() {
   window.__sendVoiceTranscript = sendVoiceTranscript;
 
   recognition.onend = () => {
-    console.log("[voice] active recording ended (wakeWordEnabled=" + wakeWordEnabled + ")");
+    console.log("[voice] active recording ended (wakeWordEnabled=" + wakeWordEnabled + ", dispatched=" + _voiceDispatched + ", lastInterim=" + JSON.stringify(_voiceLastInterim) + ")");
     if (isRecording) {
       isRecording = false;
       renderAll();
+    }
+    // Chrome sometimes ends the recognition without ever firing isFinal=true
+    // for the last result. If we never dispatched but captured interim text,
+    // treat that interim as the user's command. Without this, every "Hey Voz
+    // X" silently dies because the dispatch path is gated on final.
+    if (!_voiceDispatched && _voiceLastInterim.trim()) {
+      _dispatchActiveVoice(_voiceLastInterim, "final (from interim on end)");
     }
     if (wakeWordEnabled && !isRecording) {
       setTimeout(startWakeWordListening, 500);
