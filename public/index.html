@@ -644,17 +644,27 @@ async function detectMode() {
   return "cloud";
 }
 
+let _localRefreshTimer = null;
+let _modeRetryTimer = null;
+
+function enterLocalMode() {
+  if (MODE === "local" && _localRefreshTimer) return;
+  MODE = "local";
+  const badge = document.getElementById("modeBadge");
+  badge.textContent = "LOCAL"; badge.className = "topbar__badge local";
+  document.getElementById("onboarding").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  if (_modeRetryTimer) { clearInterval(_modeRetryTimer); _modeRetryTimer = null; }
+  localRefresh().then(renderAll);
+  if (!_localRefreshTimer) _localRefreshTimer = setInterval(localRefresh, 4000);
+}
+
 async function init() {
   MODE = await detectMode();
   const badge = document.getElementById("modeBadge");
 
   if (MODE === "local") {
-    badge.textContent = "LOCAL"; badge.className = "topbar__badge local";
-    document.getElementById("onboarding").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    await localRefresh();
-    renderAll();
-    setInterval(localRefresh, 4000);
+    enterLocalMode();
   } else {
     badge.textContent = "CLOUD"; badge.className = "topbar__badge cloud";
     if (getApiKey()) {
@@ -663,6 +673,12 @@ async function init() {
     } else {
       document.getElementById("onboarding").classList.remove("hidden");
     }
+    // Keep probing for a local dashboard. If `voz up` runs after this tab
+    // loaded, the page flips to local mode without a manual refresh.
+    _modeRetryTimer = setInterval(async () => {
+      const m = await detectMode();
+      if (m === "local") enterLocalMode();
+    }, 5000);
   }
 }
 
@@ -1059,10 +1075,11 @@ function setupVoice() {
 
     if (e.results[e.results.length - 1].isFinal) {
       stopRecording();
-      if (transcript.trim()) {
+      const msg = transcript.trim();
+      if (msg) {
         document.getElementById("statusLabel").textContent = "Sending...";
         document.getElementById("stage").className = "stage stage--working";
-        if (MODE === "local") localDispatch(VOZ_ID, transcript.trim());
+        sendVoiceTranscript(msg);
       }
     }
   };
@@ -1072,6 +1089,23 @@ function setupVoice() {
     if (e.error === "no-speech") { /* silent */ }
     else if (e.error !== "aborted") toast("Mic error: " + e.error);
   };
+
+  // Send a voice transcript. If the page is still in cloud mode but the
+  // local dashboard is reachable right now, promote to local first so the
+  // dispatch actually goes somewhere instead of being silently dropped.
+  async function sendVoiceTranscript(msg) {
+    if (MODE !== "local") {
+      const m = await detectMode();
+      if (m === "local") enterLocalMode();
+    }
+    if (MODE === "local") {
+      localDispatch(VOZ_ID, msg);
+    } else {
+      toast("Voice heard but not sent: dashboard is in CLOUD mode. Refresh after 'voz up'.");
+      console.log("[voice] dropped (cloud mode):", msg);
+    }
+  }
+  window.__sendVoiceTranscript = sendVoiceTranscript;
 
   recognition.onend = () => {
     if (isRecording) {
