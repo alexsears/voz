@@ -1247,24 +1247,51 @@ let _wakeIntentionalAbort = false;
 // command text. Holds { phrase, fullText, remainder, postMatchText, timer }.
 let _wakePending = null;
 
+// A post-match candidate must be substantive enough to plausibly be a
+// command, NOT just another wake attempt or one-word fragment that Chrome
+// emitted before the user actually started speaking the command.
+function _looksLikeRealCommand(s) {
+  if (!s) return false;
+  const t = s.trim();
+  if (t.length < 6) return false;
+  // If the candidate itself contains a wake phrase, it is another wake
+  // attempt, not the command.
+  if (WAKE_PHRASES.some(w => t.toLowerCase().includes(w))) return false;
+  // Require at least two whitespace-separated tokens.
+  if (t.split(/\s+/).filter(Boolean).length < 2) return false;
+  return true;
+}
+
 function _commitWake() {
   if (!_wakePending) return;
   const { phrase, remainder, postMatchText, timer } = _wakePending;
   if (timer) clearTimeout(timer);
   _wakePending = null;
   // Prefer a post-match result (a NEW utterance after wake) over remainder
-  // (text within the same utterance). Both can be empty, in which case we
-  // fall back to opening an active recording.
-  const command = (postMatchText || remainder || "").trim();
-  console.log("[wake] commit:", phrase, "| remainder:", JSON.stringify(remainder), "| postMatch:", JSON.stringify(postMatchText), "| using:", JSON.stringify(command));
+  // (text within the same utterance), but only if it actually looks like a
+  // real command. Otherwise fall back through remainder, then to opening
+  // active recording.
+  const post = _looksLikeRealCommand(postMatchText) ? postMatchText : "";
+  const rem  = _looksLikeRealCommand(remainder)     ? remainder     : "";
+  const command = (post || rem || "").trim();
+  console.log("[wake] commit:", phrase,
+    "| remainder:", JSON.stringify(remainder),
+    "| postMatch:", JSON.stringify(postMatchText),
+    "| using:", JSON.stringify(command));
   _wakeIntentionalAbort = true;
   stopWakeWordListening();
   if (command.length >= 2) {
     document.getElementById("statusLabel").textContent = "Sending...";
     document.getElementById("stage").className = "stage stage--working";
-    sendVoiceTranscript(command);
+    // _commitWake lives at module scope but sendVoiceTranscript is defined
+    // inside setupVoice(); call it through the exported handle.
+    if (typeof window.__sendVoiceTranscript === "function") {
+      window.__sendVoiceTranscript(command);
+    } else {
+      console.error("[wake] __sendVoiceTranscript not available (setupVoice not run yet?)");
+    }
   } else {
-    console.log("[wake] no command captured in window, opening active recording");
+    console.log("[wake] no real command in window, opening active recording");
     setTimeout(() => startRecording(), 300);
   }
 }
