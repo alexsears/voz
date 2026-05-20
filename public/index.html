@@ -1219,48 +1219,65 @@ function stopRecording() {
 }
 
 // === Wake word (continuous background listener) ===
+// Distinguishes a deliberate abort (after wake match, mode change, etc.) from
+// a surprise abort from Chrome. Surprise aborts are the diagnostic signal.
+let _wakeIntentionalAbort = false;
+
 function startWakeWordListening() {
-  if (!SpeechRecognition || isRecording || isSpeaking || isWakeListening) return;
+  if (!SpeechRecognition || isRecording || isSpeaking || isWakeListening) {
+    console.log("[wake] startWakeWordListening skipped",
+      { hasAPI: !!SpeechRecognition, isRecording, isSpeaking, isWakeListening });
+    return;
+  }
 
   wakeRecognition = new SpeechRecognition();
   wakeRecognition.continuous = true;
   wakeRecognition.interimResults = true;
   wakeRecognition.lang = "en-US";
+  // Ask Chrome for multiple recognition hypotheses per result. "Voz" is
+  // unusual enough that the top hypothesis is sometimes a plausible English
+  // word like "boss" while a less-confident alternative gets it right.
+  wakeRecognition.maxAlternatives = 3;
 
   wakeRecognition.onstart = () => {
     isWakeListening = true;
-    document.getElementById("statusHint").textContent = "Listening for \"Hey Voz\"...";
+    _wakeIntentionalAbort = false;
+    console.log("[wake] onstart at", new Date().toISOString());
+    document.getElementById("statusHint").textContent = 'Listening for "Hey Voz"...';
   };
 
   wakeRecognition.onresult = (e) => {
     let lastText = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const text = e.results[i][0].transcript.toLowerCase().trim();
-      if (text) lastText = text;
-      const matched = WAKE_PHRASES.find(w => text.includes(w));
-      if (matched) {
-        // The wake phrase is part of a longer utterance: "hey voz let's plan".
-        // Extract whatever followed the wake phrase and dispatch it directly,
-        // because by the time we could start a fresh recording the user has
-        // already finished speaking and we'd record silence.
-        const idx = text.indexOf(matched);
-        const remainder = text.slice(idx + matched.length).replace(/^[,.\s]+/, "").trim();
-        console.log("[wake] matched:", matched, "| full:", text, "| remainder:", JSON.stringify(remainder));
-        playPing("wake");
-        stopWakeWordListening();
-        if (remainder.length >= 2) {
-          // The user already said their command in the same breath. Send it.
-          document.getElementById("statusLabel").textContent = "Sending...";
-          document.getElementById("stage").className = "stage stage--working";
-          sendVoiceTranscript(remainder);
-        } else {
-          // Just the wake phrase by itself. Open a recording window for the
-          // follow-on command.
-          console.log("[wake] no remainder, starting active recording");
-          setTimeout(() => startRecording(), 300);
+      const result = e.results[i];
+      // Check every alternative Chrome offered (low-confidence ones often
+      // catch "Voz" when the top pick mishears it as "boss" or "voice").
+      const alts = [];
+      for (let a = 0; a < result.length; a++) alts.push(result[a].transcript.toLowerCase().trim());
+      if (alts[0]) lastText = alts[0];
+      for (const text of alts) {
+        const matched = WAKE_PHRASES.find(w => text.includes(w));
+        if (matched) {
+          const idx = text.indexOf(matched);
+          const remainder = text.slice(idx + matched.length).replace(/^[,.\s]+/, "").trim();
+          console.log("[wake] matched:", matched, "| full:", text, "| remainder:", JSON.stringify(remainder), "| isFinal:", result.isFinal, "| alternatives:", alts);
+          playPing("wake");
+          _wakeIntentionalAbort = true;
+          stopWakeWordListening();
+          if (remainder.length >= 2) {
+            document.getElementById("statusLabel").textContent = "Sending...";
+            document.getElementById("stage").className = "stage stage--working";
+            sendVoiceTranscript(remainder);
+          } else {
+            console.log("[wake] no remainder, starting active recording");
+            setTimeout(() => startRecording(), 300);
+          }
+          return;
         }
-        return;
       }
+      // No match for this result. Log alternatives so we can SEE what the
+      // recognizer thinks was said, including the less-confident ones.
+      if (alts.length > 1) console.log("[wake] no match. alts:", alts, "| isFinal:", result.isFinal);
     }
     if (lastText) {
       console.log("[wake] heard:", lastText);
@@ -1270,10 +1287,10 @@ function startWakeWordListening() {
   };
 
   wakeRecognition.onerror = (e) => {
-    console.log("[wake] error:", e.error);
+    const kind = _wakeIntentionalAbort && e.error === "aborted" ? "aborted (expected)" : e.error;
+    console.log("[wake] error:", kind);
     isWakeListening = false;
     const hint = document.getElementById("statusHint");
-    // Errors that won't fix themselves: tell the user, stop the retry loop.
     if (e.error === "not-allowed" || e.error === "service-not-allowed") {
       hint.textContent = "microphone blocked. click the lock icon, allow mic, refresh.";
       return;
@@ -1283,25 +1300,30 @@ function startWakeWordListening() {
         "no mic available. check Windows mic privacy + close other apps using the mic, then refresh.";
       return;
     }
-    // no-speech / network / aborted: harmless, just restart the listener.
     if (e.error !== "aborted" && wakeWordEnabled) {
       setTimeout(startWakeWordListening, 2000);
     }
   };
 
   wakeRecognition.onend = () => {
+    console.log("[wake] onend at", new Date().toISOString(), "intentional:", _wakeIntentionalAbort);
     isWakeListening = false;
-    // Auto-restart if wake word mode is still on
     if (wakeWordEnabled && !isRecording && !isSpeaking) {
       setTimeout(startWakeWordListening, 500);
     }
   };
 
-  try { wakeRecognition.start(); } catch {}
+  try {
+    wakeRecognition.start();
+    console.log("[wake] .start() called");
+  } catch (err) {
+    console.log("[wake] .start() threw:", err.message);
+  }
 }
 
 function stopWakeWordListening() {
   if (wakeRecognition) {
+    _wakeIntentionalAbort = true;
     try { wakeRecognition.abort(); } catch {}
     isWakeListening = false;
   }
