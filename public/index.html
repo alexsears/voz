@@ -809,10 +809,15 @@ function renderStage() {
     hint.textContent = awayLabel || "";
   } else if (cs.state === "asking") {
     label.textContent = cs.preview || cs.label;
-    hint.textContent = "Tap the orb to respond" + awayLabel;
+    hint.textContent = (isWakeListening ? "Say \"Hey Voz\" to respond" : "Tap the orb to respond") + awayLabel;
   } else if (cs.state === "ready" || cs.state === "idle") {
     const agentNote = getAgentNote();
-    const idleHint = (state.tmuxSession === false ? "Hybrid — tap the orb to talk" : "Tap the orb to talk") + awayLabel;
+    // When wake-word mode is on, the entry point is the wake phrase, not a
+    // tap. Reflect that in the hint so the orb is not the only affordance.
+    const base = isWakeListening
+      ? "Say \"Hey Voz\" to talk"
+      : (state.tmuxSession === false ? "Hybrid. Tap the orb to talk" : "Tap the orb to talk");
+    const idleHint = base + awayLabel;
     label.textContent = cs.preview || "Ready";
     hint.textContent = agentNote || idleHint;
   } else if (cs.state === "shell") {
