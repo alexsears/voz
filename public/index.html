@@ -1243,6 +1243,32 @@ function stopRecording() {
 // a surprise abort from Chrome. Surprise aborts are the diagnostic signal.
 let _wakeIntentionalAbort = false;
 
+// Set when a wake phrase has been matched but we are still listening for the
+// command text. Holds { phrase, fullText, remainder, postMatchText, timer }.
+let _wakePending = null;
+
+function _commitWake() {
+  if (!_wakePending) return;
+  const { phrase, remainder, postMatchText, timer } = _wakePending;
+  if (timer) clearTimeout(timer);
+  _wakePending = null;
+  // Prefer a post-match result (a NEW utterance after wake) over remainder
+  // (text within the same utterance). Both can be empty, in which case we
+  // fall back to opening an active recording.
+  const command = (postMatchText || remainder || "").trim();
+  console.log("[wake] commit:", phrase, "| remainder:", JSON.stringify(remainder), "| postMatch:", JSON.stringify(postMatchText), "| using:", JSON.stringify(command));
+  _wakeIntentionalAbort = true;
+  stopWakeWordListening();
+  if (command.length >= 2) {
+    document.getElementById("statusLabel").textContent = "Sending...";
+    document.getElementById("stage").className = "stage stage--working";
+    sendVoiceTranscript(command);
+  } else {
+    console.log("[wake] no command captured in window, opening active recording");
+    setTimeout(() => startRecording(), 300);
+  }
+}
+
 function startWakeWordListening() {
   if (!SpeechRecognition || isRecording || isSpeaking || isWakeListening) {
     console.log("[wake] startWakeWordListening skipped",
@@ -1275,31 +1301,63 @@ function startWakeWordListening() {
       const alts = [];
       for (let a = 0; a < result.length; a++) alts.push(result[a].transcript.toLowerCase().trim());
       if (alts[0]) lastText = alts[0];
-      for (const text of alts) {
-        const matched = WAKE_PHRASES.find(w => text.includes(w));
-        if (matched) {
-          const idx = text.indexOf(matched);
-          const remainder = text.slice(idx + matched.length).replace(/^[,.\s]+/, "").trim();
-          console.log("[wake] matched:", matched, "| full:", text, "| remainder:", JSON.stringify(remainder), "| isFinal:", result.isFinal, "| alternatives:", alts);
-          playPing("wake");
-          _wakeIntentionalAbort = true;
-          stopWakeWordListening();
-          if (remainder.length >= 2) {
-            document.getElementById("statusLabel").textContent = "Sending...";
-            document.getElementById("stage").className = "stage stage--working";
-            sendVoiceTranscript(remainder);
-          } else {
-            console.log("[wake] no remainder, starting active recording");
-            setTimeout(() => startRecording(), 300);
+
+      // If we are mid-match (wake fired but we are waiting for command text
+      // to arrive), every subsequent piece of text is potentially the command.
+      if (_wakePending) {
+        for (const text of alts) {
+          const m = WAKE_PHRASES.find(w => text.includes(w));
+          if (m) {
+            // Same matched-result grew. Update remainder if longer.
+            const idx = text.indexOf(m);
+            const rem = text.slice(idx + m.length).replace(/^[,.\s]+/, "").trim();
+            if (rem.length > (_wakePending.remainder || "").length) {
+              _wakePending.remainder = rem;
+              console.log("[wake] remainder grew:", JSON.stringify(rem));
+            }
+          } else if (text.length >= 2) {
+            // A new result emitted after the wake match: treat as the command.
+            if ((text.length) > (_wakePending.postMatchText || "").length) {
+              _wakePending.postMatchText = text;
+              console.log("[wake] post-match text:", JSON.stringify(text));
+            }
           }
-          return;
         }
+        // Commit early if we have enough OR the current result finalized.
+        const haveCmd = (_wakePending.postMatchText && _wakePending.postMatchText.length >= 2)
+                     || (_wakePending.remainder && _wakePending.remainder.length >= 2);
+        if (haveCmd || result.isFinal) _commitWake();
+        continue;
       }
-      // No match for this result. Log alternatives so we can SEE what the
-      // recognizer thinks was said, including the less-confident ones.
+
+      // Not yet matched. Check this result against the wake phrase list.
+      let matched = null, matchedText = null;
+      for (const text of alts) {
+        const m = WAKE_PHRASES.find(w => text.includes(w));
+        if (m) { matched = m; matchedText = text; break; }
+      }
+      if (matched) {
+        const idx = matchedText.indexOf(matched);
+        const remainder = matchedText.slice(idx + matched.length).replace(/^[,.\s]+/, "").trim();
+        console.log("[wake] matched:", matched, "| full:", matchedText, "| remainder:", JSON.stringify(remainder), "| isFinal:", result.isFinal, "| alts:", alts);
+        playPing("wake");
+        _wakePending = { phrase: matched, fullText: matchedText, remainder, postMatchText: null, timer: null };
+        if (remainder.length >= 2 || result.isFinal) {
+          _commitWake();
+        } else {
+          // Wait up to 1.5s for the rest of the sentence. The user said
+          // "Hey Voz let's plan" as one breath but Chrome emitted "hey voz"
+          // as an interim before the rest of the words materialize. If we
+          // commit instantly we miss them.
+          document.getElementById("statusHint").textContent = "wake matched, listening...";
+          _wakePending.timer = setTimeout(_commitWake, 1500);
+        }
+        return;
+      }
+
       if (alts.length > 1) console.log("[wake] no match. alts:", alts, "| isFinal:", result.isFinal);
     }
-    if (lastText) {
+    if (lastText && !_wakePending) {
       console.log("[wake] heard:", lastText);
       document.getElementById("statusHint").textContent =
         "heard: " + (lastText.length > 60 ? lastText.slice(-60) : lastText);
@@ -1308,8 +1366,11 @@ function startWakeWordListening() {
 
   wakeRecognition.onerror = (e) => {
     const kind = _wakeIntentionalAbort && e.error === "aborted" ? "aborted (expected)" : e.error;
-    console.log("[wake] error:", kind);
+    // no-speech fires every ~8s when the listener has been quiet; not useful
+    // as a log line at that rate. Other errors stay loud.
+    if (e.error !== "no-speech") console.log("[wake] error:", kind);
     isWakeListening = false;
+    if (_wakePending) _commitWake();
     const hint = document.getElementById("statusHint");
     if (e.error === "not-allowed" || e.error === "service-not-allowed") {
       hint.textContent = "microphone blocked. click the lock icon, allow mic, refresh.";
@@ -1326,8 +1387,9 @@ function startWakeWordListening() {
   };
 
   wakeRecognition.onend = () => {
-    console.log("[wake] onend at", new Date().toISOString(), "intentional:", _wakeIntentionalAbort);
+    console.log("[wake] onend at", new Date().toISOString(), "intentional:", _wakeIntentionalAbort, "pending:", !!_wakePending);
     isWakeListening = false;
+    if (_wakePending) _commitWake();
     if (wakeWordEnabled && !isRecording && !isSpeaking) {
       setTimeout(startWakeWordListening, 500);
     }
