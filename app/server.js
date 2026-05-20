@@ -1,5 +1,5 @@
 import express from "express";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -26,6 +26,20 @@ const IN_WSL = (() => {
   catch { return false; }
 })();
 const WSL = IN_WSL ? "" : "wsl -d Ubuntu --";
+
+// Version: package.json + git short sha + start time. Exposed via
+// /api/health so the dashboard can show exactly which code is running.
+const VERSION = (() => {
+  let v = "0.0.0";
+  try { v = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf-8")).version || v; } catch {}
+  let sha = "";
+  try {
+    sha = execSync(`git -C ${JSON.stringify(ORCH_DIR)} rev-parse --short HEAD`,
+      { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {}
+  return { semver: v, sha, started: new Date().toISOString() };
+})();
+console.log(`Voz dashboard v${VERSION.semver}${VERSION.sha ? "@" + VERSION.sha : ""}`);
 
 // Clean env: strip CLAUDECODE so child processes don't think they're nested
 const cleanEnv = { ...process.env };
@@ -380,7 +394,7 @@ app.get("/api/memory/status", (_req, res) => {
 });
 
 app.get("/api/health", async (_req, res) => {
-  res.json({ ok: true, session: await sessionExists() });
+  res.json({ ok: true, session: await sessionExists(), version: VERSION, in_wsl: IN_WSL });
 });
 
 // OpenAI proxy for auto-pilot

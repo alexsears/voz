@@ -631,15 +631,24 @@ setInterval(autopilotCheck, AP_CHECK_INTERVAL);
 //  Init
 // ═══════════════════════════════════════════════════════
 
+let SERVER_VERSION = null; // { semver, sha, started } once the dashboard is reached
+
 async function detectMode() {
+  let healthUrl;
   if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
     LOCAL_API = location.origin;
-    return "local";
+    healthUrl = LOCAL_API + "/api/health";
+  } else {
+    healthUrl = "http://localhost:4800/api/health";
   }
   try {
-    const r = await fetch("http://localhost:4800/api/health", { signal: AbortSignal.timeout(1500) });
+    const r = await fetch(healthUrl, { signal: AbortSignal.timeout(1500) });
     const d = await r.json();
-    if (d.ok) { LOCAL_API = "http://localhost:4800"; return "local"; }
+    if (d.ok) {
+      LOCAL_API = healthUrl.replace(/\/api\/health$/, "");
+      if (d.version) SERVER_VERSION = d.version;
+      return "local";
+    }
   } catch {}
   return "cloud";
 }
@@ -647,11 +656,19 @@ async function detectMode() {
 let _localRefreshTimer = null;
 let _modeRetryTimer = null;
 
+function badgeText(prefix) {
+  if (!SERVER_VERSION) return prefix;
+  const v = SERVER_VERSION.semver || "?";
+  const sha = SERVER_VERSION.sha ? ` ${SERVER_VERSION.sha}` : "";
+  return `${prefix} v${v}${sha}`;
+}
+
 function enterLocalMode() {
   if (MODE === "local" && _localRefreshTimer) return;
   MODE = "local";
   const badge = document.getElementById("modeBadge");
-  badge.textContent = "LOCAL"; badge.className = "topbar__badge local";
+  badge.textContent = badgeText("LOCAL"); badge.className = "topbar__badge local";
+  if (SERVER_VERSION?.started) badge.title = `started ${SERVER_VERSION.started}`;
   document.getElementById("onboarding").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   if (_modeRetryTimer) { clearInterval(_modeRetryTimer); _modeRetryTimer = null; }
@@ -666,7 +683,7 @@ async function init() {
   if (MODE === "local") {
     enterLocalMode();
   } else {
-    badge.textContent = "CLOUD"; badge.className = "topbar__badge cloud";
+    badge.textContent = badgeText("CLOUD"); badge.className = "topbar__badge cloud";
     if (getApiKey()) {
       document.getElementById("app").classList.remove("hidden");
       renderAll();
