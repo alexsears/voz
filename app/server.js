@@ -1,6 +1,6 @@
 import express from "express";
 import { exec, execSync } from "child_process";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { promisify } from "util";
@@ -51,6 +51,7 @@ function toWslPath(winPath) {
 }
 const WSL_ORCH_DIR = toWslPath(ORCH_DIR);
 const DEFAULT_OPENAI_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini";
+const BRAIN_VAULT_WIN = process.env.OBSIDIAN_BRAIN_PATH || "C:\\code\\obsidian-brain";
 
 const app = express();
 app.use(express.json());
@@ -95,6 +96,139 @@ function parseProjects() {
   }
   if (current.name) projects.push(current);
   return projects;
+}
+
+// --- Obsidian brain helpers ---
+function brainFsPath(...parts) {
+  const base = process.platform === "win32" ? BRAIN_VAULT_WIN : toWslPath(BRAIN_VAULT_WIN);
+  return join(base, ...parts);
+}
+
+function brainWinPath(...parts) {
+  return [BRAIN_VAULT_WIN, ...parts].join("\\");
+}
+
+function safeStat(path) {
+  try {
+    const s = statSync(path);
+    return { path, mtime: s.mtime.toISOString(), size: s.size };
+  } catch {
+    return null;
+  }
+}
+
+function latestFile(dir, match) {
+  try {
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && (!match || match.test(entry.name)))
+      .map((entry) => {
+        const path = join(dir, entry.name);
+        const s = statSync(path);
+        return { path, name: entry.name, mtime: s.mtime.toISOString(), size: s.size, ts: s.mtimeMs };
+      })
+      .sort((a, b) => b.ts - a.ts)[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+function parseBrainPriorities() {
+  const nowPath = brainFsPath("now.md");
+  let text = "";
+  try { text = readFileSync(nowPath, "utf-8"); } catch { return []; }
+
+  const heading = text.match(/^## Current Priorities[ \t]*$/m);
+  if (!heading) return [];
+  const rest = text.slice(heading.index + heading[0].length);
+  const nextHeading = rest.search(/^##\s+/m);
+  const section = nextHeading >= 0 ? rest.slice(0, nextHeading) : rest;
+  if (!section) return [];
+
+  return section.split("\n")
+    .map((line) => line.trim().match(/^(\d+)\.\s+(.+)$/))
+    .filter(Boolean)
+    .map((match) => {
+      const raw = match[2].trim();
+      const plain = raw
+        .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2")
+        .replace(/\[\[([^\]]+)\]\]/g, "$1");
+      const [title, ...rest] = plain.split(":");
+      return {
+        rank: Number(match[1]),
+        title: title.trim(),
+        detail: rest.join(":").trim(),
+        raw,
+      };
+    });
+}
+
+function countStaleNotes(reportPath) {
+  try {
+    const text = readFileSync(reportPath, "utf-8");
+    const section = text.split("## Notes Needing Review")[1]?.split(/^##\s+/m)[0] || "";
+    if (/-\s+None\./i.test(section)) return 0;
+    return section.split("\n").filter((line) => /^-\s+/.test(line.trim())).length;
+  } catch {
+    return null;
+  }
+}
+
+function powershellCommand(scriptWinPath) {
+  const exe = process.platform === "win32" ? "powershell" : "powershell.exe";
+  return `${exe} -NoProfile -ExecutionPolicy Bypass -File ${JSON.stringify(scriptWinPath)}`;
+}
+
+async function scheduledTaskInfo(taskName) {
+  const exe = process.platform === "win32" ? "powershell" : "powershell.exe";
+  const command = `${exe} -NoProfile -Command ${JSON.stringify(
+    `try { Get-ScheduledTaskInfo -TaskName '${taskName.replace(/'/g, "''")}' | Select-Object LastRunTime,NextRunTime,LastTaskResult | ConvertTo-Json -Compress } catch { '{}' }`
+  )}`;
+  try {
+    const { stdout } = await execAsync(command, { ...execOpts, timeout: 5000 });
+    const parsed = JSON.parse(stdout.trim() || "{}");
+    return {
+      taskName,
+      lastRunTime: parsed.LastRunTime || null,
+      nextRunTime: parsed.NextRunTime || null,
+      lastTaskResult: parsed.LastTaskResult ?? null,
+    };
+  } catch {
+    return { taskName, lastRunTime: null, nextRunTime: null, lastTaskResult: null };
+  }
+}
+
+async function brainStatus() {
+  const staleReport = brainFsPath("reports", "stale-notes.md");
+  const daily = latestFile(brainFsPath("daily"), /^\d{4}-\d{2}-\d{2}\.md$/);
+  const summary = latestFile(brainFsPath("summaries"), /\.md$/);
+  const stale = safeStat(staleReport);
+  const [dailyTask, weeklyTask, staleTask] = await Promise.all([
+    scheduledTaskInfo("Obsidian Brain Daily Capture"),
+    scheduledTaskInfo("Obsidian Brain Weekly Consolidation"),
+    scheduledTaskInfo("Obsidian Brain Stale Note Review"),
+  ]);
+
+  return {
+    ok: existsSync(brainFsPath("now.md")),
+    vaultPath: BRAIN_VAULT_WIN,
+    nowPath: brainWinPath("now.md"),
+    priorities: parseBrainPriorities(),
+    maintenance: {
+      dailyCapture: dailyTask,
+      weeklyConsolidation: weeklyTask,
+      staleReview: staleTask,
+    },
+    files: {
+      lastDaily: daily,
+      lastSummary: summary,
+      staleReport: stale ? { ...stale, staleCount: countStaleNotes(staleReport) } : null,
+    },
+    stale: {
+      count: countStaleNotes(staleReport),
+      reportPath: brainWinPath("reports", "stale-notes.md"),
+    },
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 // --- Async helpers (non-blocking) ---
@@ -391,6 +525,50 @@ app.get("/api/memory/status", (_req, res) => {
     return { name: p.name, hasMemory: memoryContent !== null, entries: lines, content: memoryContent };
   });
   res.json({ projects: result });
+});
+
+app.get("/api/brain/status", async (_req, res) => {
+  try {
+    res.json(await brainStatus());
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/brain/run/:job", async (req, res) => {
+  const jobs = {
+    capture: brainWinPath("scripts", "run-brain-capture.ps1"),
+    consolidate: brainWinPath("scripts", "run-weekly-consolidation.ps1"),
+    stale: brainWinPath("scripts", "run-stale-note-review.ps1"),
+  };
+  const script = jobs[req.params.job];
+  if (!script) return res.status(404).json({ ok: false, error: "Unknown brain job." });
+
+  try {
+    const { stdout, stderr } = await execAsync(powershellCommand(script), { ...execOpts, timeout: 120000 });
+    res.json({ ok: true, job: req.params.job, stdout, stderr, status: await brainStatus() });
+  } catch (e) {
+    res.status(500).json({
+      ok: false,
+      job: req.params.job,
+      error: e.message,
+      stdout: e.stdout || "",
+      stderr: e.stderr || "",
+      status: await brainStatus(),
+    });
+  }
+});
+
+app.post("/api/brain/open", async (_req, res) => {
+  try {
+    const { stdout, stderr } = await execAsync(
+      powershellCommand(brainWinPath("scripts", "open-vault.ps1")),
+      { ...execOpts, timeout: 30000 }
+    );
+    res.json({ ok: true, stdout, stderr });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message, stdout: e.stdout || "", stderr: e.stderr || "" });
+  }
 });
 
 app.get("/api/health", async (_req, res) => {

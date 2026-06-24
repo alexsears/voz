@@ -304,6 +304,31 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
 .modal__btns .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); }
 .modal__btns .save-btn { background: var(--accent); border: none; color: white; }
 
+.brain-modal { width: min(760px, calc(100vw - 28px)); max-height: calc(100vh - 48px); overflow-y: auto; }
+.brain-modal__head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.brain-modal__head h3 { margin-bottom: 4px; }
+.brain-modal__sub { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.brain-modal__spacer { flex: 1; }
+.brain-status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+.brain-stat { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.03); min-width: 0; }
+.brain-stat__label { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.brain-stat__value { font-size: 13px; color: var(--text); line-height: 1.35; word-break: break-word; }
+.brain-section { margin-top: 18px; }
+.brain-section h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+.brain-priorities { display: grid; gap: 8px; }
+.brain-priority { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.025); }
+.brain-priority__rank { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: rgba(47,230,197,0.1); color: var(--accent-2); font-size: 11px; font-weight: 800; }
+.brain-priority__title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.brain-priority__detail { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.brain-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.brain-action { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); font-family: var(--font); font-size: 12px; font-weight: 650; cursor: pointer; }
+.brain-action:hover { background: rgba(255,255,255,0.05); }
+.brain-action.primary { background: var(--accent); border-color: var(--accent); color: white; }
+.brain-action:disabled { opacity: 0.45; cursor: wait; }
+.brain-empty { color: var(--muted); font-size: 13px; line-height: 1.5; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.025); }
+.brain-close { width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
+.brain-close:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
 /* Toast */
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 200; padding: 10px 24px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; opacity: 0; transition: all 300ms ease; white-space: nowrap; }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
@@ -317,6 +342,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
   .topbar { padding: 10px 14px; }
   .bottombar { padding: 8px 14px 12px; }
   .terminal-drawer { height: 60vh; }
+  .brain-status { grid-template-columns: 1fr; }
+  .brain-modal { padding: 18px; }
 }
   </style>
 </head>
@@ -353,6 +380,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
     <button class="topbar__ap" id="apSafeBtn" title="Auto-pilot safe mode: never send unattended AI replies">
       <div class="topbar__ap-dot"></div>
       <span>SAFE</span>
+    </button>
+    <button class="topbar__ap" id="brainBtn" title="Brain status">
+      <div class="topbar__ap-dot"></div>
+      <span>BRAIN</span>
     </button>
     <button class="topbar__btn" id="terminalBtn" title="Show terminal">&#9776;</button>
     <button class="topbar__btn" id="restartBtn" title="Restart Voz">&#8635;</button>
@@ -397,6 +428,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
   <div class="terminal-drawer__body" id="terminalBody"></div>
 </div>
 
+<!-- Brain modal -->
+<div class="modal-overlay hidden" id="brainModal">
+  <div class="modal brain-modal">
+    <div class="brain-modal__head">
+      <div>
+        <h3>Brain Status</h3>
+        <div class="brain-modal__sub" id="brainSubtitle">Loading Obsidian status...</div>
+      </div>
+      <div class="brain-modal__spacer"></div>
+      <button class="brain-close" id="brainClose" title="Close">&times;</button>
+    </div>
+    <div id="brainContent" class="brain-empty">Loading...</div>
+  </div>
+</div>
+
 <!-- Settings modal -->
 <div class="modal-overlay hidden" id="settingsModal">
   <div class="modal">
@@ -437,6 +483,8 @@ let prevOutputs = {};
 let staleCounters = {};
 let activeTermTab = "voz";
 let termDrawerOpen = false;
+let brainStatus = null;
+let brainBusy = false;
 
 function loadState() {
   try { const r = localStorage.getItem(STATE_KEY); if (r) return JSON.parse(r); } catch {}
@@ -754,6 +802,142 @@ async function localDispatch(name, message) {
     setTimeout(localRefresh, 4000);
   } else {
     toast("Error: " + (r.error || "failed"));
+  }
+}
+
+// Brain status
+async function loadBrainStatus() {
+  if (MODE !== "local") {
+    brainStatus = { ok: false, error: "Brain status requires the local Voz dashboard." };
+    renderBrainModal();
+    return;
+  }
+  brainBusy = true;
+  renderBrainModal();
+  const data = await localApi("/api/brain/status");
+  brainStatus = data;
+  brainBusy = false;
+  renderBrainModal();
+}
+
+async function runBrainJob(job) {
+  if (MODE !== "local") return toast("Brain actions require local mode.");
+  brainBusy = true;
+  renderBrainModal();
+  const data = await localApi(`/api/brain/run/${job}`, { method: "POST" });
+  brainBusy = false;
+  if (data.status) brainStatus = data.status;
+  else brainStatus = data;
+  renderBrainModal();
+  toast(data.ok ? "Brain job complete." : "Brain job failed.");
+}
+
+async function openBrainVault() {
+  if (MODE !== "local") return toast("Open Obsidian from local mode.");
+  const data = await localApi("/api/brain/open", { method: "POST" });
+  toast(data.ok ? "Opening Obsidian." : "Could not open Obsidian.");
+}
+
+function formatBrainTime(value) {
+  if (!value) return "Never";
+  const dotNet = String(value).match(/Date\((\d+)\)/);
+  const d = new Date(dotNet ? Number(dotNet[1]) : value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function renderBrainModal() {
+  const subtitle = document.getElementById("brainSubtitle");
+  const content = document.getElementById("brainContent");
+  if (!subtitle || !content) return;
+
+  if (brainBusy && !brainStatus) {
+    subtitle.textContent = "Loading Obsidian status...";
+    content.className = "brain-empty";
+    content.textContent = "Loading...";
+    return;
+  }
+  if (!brainStatus) {
+    subtitle.textContent = "Open status to load the brain.";
+    content.className = "brain-empty";
+    content.textContent = "No status loaded yet.";
+    return;
+  }
+  if (brainStatus.error || brainStatus.ok === false) {
+    subtitle.textContent = "Obsidian status unavailable.";
+    content.className = "brain-empty";
+    content.textContent = brainStatus.error || "Could not read the Obsidian brain.";
+    return;
+  }
+
+  const m = brainStatus.maintenance || {};
+  const files = brainStatus.files || {};
+  const staleCount = brainStatus.stale?.count ?? files.staleReport?.staleCount ?? "Unknown";
+  subtitle.textContent = `Vault: ${brainStatus.vaultPath || "not configured"} | Updated ${formatBrainTime(brainStatus.updatedAt)}`;
+
+  const priorities = (brainStatus.priorities || []).map((p) => `
+    <div class="brain-priority">
+      <div class="brain-priority__rank">${esc(p.rank)}</div>
+      <div>
+        <div class="brain-priority__title">${esc(p.title)}</div>
+        <div class="brain-priority__detail">${esc(p.detail || p.raw || "")}</div>
+      </div>
+    </div>
+  `).join("") || `<div class="brain-empty">No priorities found in now.md.</div>`;
+
+  content.className = "";
+  content.innerHTML = `
+    <div class="brain-status">
+      <div class="brain-stat">
+        <div class="brain-stat__label">Daily Capture</div>
+        <div class="brain-stat__value">${esc(formatBrainTime(m.dailyCapture?.lastRunTime || files.lastDaily?.mtime))}</div>
+      </div>
+      <div class="brain-stat">
+        <div class="brain-stat__label">Weekly Consolidation</div>
+        <div class="brain-stat__value">${esc(formatBrainTime(m.weeklyConsolidation?.lastRunTime || files.lastSummary?.mtime))}</div>
+      </div>
+      <div class="brain-stat">
+        <div class="brain-stat__label">Stale Notes</div>
+        <div class="brain-stat__value">${esc(String(staleCount))}</div>
+      </div>
+    </div>
+    <div class="brain-section">
+      <h4>Current Priorities</h4>
+      <div class="brain-priorities">${priorities}</div>
+    </div>
+    <div class="brain-section">
+      <h4>Maintenance</h4>
+      <div class="brain-status">
+        <div class="brain-stat">
+          <div class="brain-stat__label">Next Capture</div>
+          <div class="brain-stat__value">${esc(formatBrainTime(m.dailyCapture?.nextRunTime))}</div>
+        </div>
+        <div class="brain-stat">
+          <div class="brain-stat__label">Next Weekly</div>
+          <div class="brain-stat__value">${esc(formatBrainTime(m.weeklyConsolidation?.nextRunTime))}</div>
+        </div>
+        <div class="brain-stat">
+          <div class="brain-stat__label">Next Stale Review</div>
+          <div class="brain-stat__value">${esc(formatBrainTime(m.staleReview?.nextRunTime))}</div>
+        </div>
+      </div>
+      <div class="brain-actions">
+        <button class="brain-action primary" data-brain-open>Open Obsidian</button>
+        <button class="brain-action" data-brain-job="capture">Run Capture</button>
+        <button class="brain-action" data-brain-job="consolidate">Run Weekly</button>
+        <button class="brain-action" data-brain-job="stale">Run Stale Review</button>
+      </div>
+    </div>
+  `;
+
+  content.querySelectorAll("[data-brain-job]").forEach((btn) => {
+    btn.disabled = brainBusy;
+    btn.onclick = () => runBrainJob(btn.dataset.brainJob);
+  });
+  const openBtn = content.querySelector("[data-brain-open]");
+  if (openBtn) {
+    openBtn.disabled = brainBusy;
+    openBtn.onclick = openBrainVault;
   }
 }
 
@@ -1555,6 +1739,14 @@ document.getElementById("apSafeBtn").onclick = () => {
 };
 updateAutopilotUI();
 
+// Brain
+document.getElementById("brainBtn").onclick = () => {
+  document.getElementById("brainModal").classList.remove("hidden");
+  loadBrainStatus();
+};
+document.getElementById("brainClose").onclick = () => document.getElementById("brainModal").classList.add("hidden");
+document.getElementById("brainModal").onclick = (e) => { if (e.target.id === "brainModal") e.target.classList.add("hidden"); };
+
 // Restart
 document.getElementById("restartBtn").onclick = async () => {
   const btn = document.getElementById("restartBtn");
@@ -1585,7 +1777,13 @@ document.getElementById("settingsSave").onclick = () => {
   toast("Settings saved");
 };
 document.getElementById("settingsModal").onclick = (e) => { if (e.target.id === "settingsModal") e.target.classList.add("hidden"); };
-document.onkeydown = (e) => { if (e.key === "Escape") { document.getElementById("settingsModal").classList.add("hidden"); closeTermDrawer(); } };
+document.onkeydown = (e) => {
+  if (e.key === "Escape") {
+    document.getElementById("settingsModal").classList.add("hidden");
+    document.getElementById("brainModal").classList.add("hidden");
+    closeTermDrawer();
+  }
+};
 
 // Onboarding
 document.getElementById("apiKeySave").onclick = async () => {

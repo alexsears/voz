@@ -25,6 +25,8 @@ Important files and directories:
 - app/server.js        - Express dashboard API (port 4800), wraps tmux via WSL
 - public/index.html    - single-file dashboard UI (all CSS+JS inline)
 - app/dashboard.log    - dashboard stdout/stderr
+- C:\code\obsidian-brain - shared Obsidian operating brain surfaced in the
+  dashboard Brain Status panel
 
 Run/test/deploy commands:
 
@@ -33,6 +35,8 @@ Run/test/deploy commands:
 - Syntax check:      node --check app/server.js
 - Attach session:    tmux attach -t voz
 - Stop everything:   ./stop.sh
+- Brain API:         GET /api/brain/status; POST /api/brain/run/:job
+  with job capture, consolidate, or stale; POST /api/brain/open
 - No automated test suite exists yet.
 
 Architectural note (WSL bridging symmetry):
@@ -50,6 +54,9 @@ Operational notes:
   cmd.exe with CLAUDECODE cleared to avoid nested-session errors.
 - Dashboard port: PORT env or 4800. OpenAI model: OPENAI_CHAT_MODEL env
   or gpt-4o-mini default. Auto-pilot needs MODE=local + OpenAI key.
+- Brain Status reads C:\code\obsidian-brain\now.md for priorities, reads
+  local reports/log timestamps, queries the three Obsidian scheduled tasks,
+  and runs the vault's PowerShell maintenance scripts on demand.
 - Per orchestrator memory (C:\code), the old tmux Voz was marked RETIRED
   and replaced by a single Claude Code orchestrator window. As of 2026-05-18
   active development resumed at the user's request.
