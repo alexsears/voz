@@ -174,7 +174,7 @@ If voice mode isn't working, check:
 ## Voice Interaction Guidelines (app behavior)
 
 1. **Parse intent**: Figure out which project the user is talking about from context. If ambiguous, ask which project they mean.
-2. **Confirm before dispatching**: For significant tasks, briefly confirm what is about to be sent and to which project.
+2. **Scope dispatching**: Follow the shared delegation policy. Explain the target and task when dispatching; do not re-request authorization already given.
 3. **Summarize results**: After checking output, give a concise spoken summary rather than dumping raw terminal output.
 4. **Be proactive**: If errors show up in a project's output during a status check, flag them to the user.
 5. **Handle multi-project tasks**: If the user describes work that spans multiple projects, break it into per-project instructions and dispatch to each.
@@ -197,33 +197,11 @@ The orchestrator session also manages memory:
 - **Sync command**: `./sync.sh sync` commits all MEMORY.md files across projects; `./sync.sh push` pushes to remotes
 - **Read project memory**: `cat /mnt/c/code/<project>/MEMORY.md` shows what a project instance knows
 
-## Memory System (Voz)
+## Project memory
 
-This repo has a persistent memory file at `MEMORY.md` in the project root. It survives across sessions. **Read it at the start of every conversation.**
-
-### When to Write to MEMORY.md (do this automatically, never ask)
-
-**Always save immediately when:**
-- You make or discover an architectural decision ("we use X because Y")
-- You fix a bug that took effort to diagnose (save the root cause)
-- You learn how a non-obvious part of the codebase works
-- You discover a dependency, config, or environment quirk
-- The user states a preference or convention ("always use X", "never do Y")
-- You complete a feature or milestone (save what was built and where)
-- You discover something is broken or fragile
-- You establish a pattern that future sessions should follow
-
-**Never save:**
-- Temporary debugging state
-- Things already documented in README or inline comments
-- Obvious or generic knowledge
-
-### Format
-- Bullet points, not paragraphs
-- Include file paths when referencing code
-- Date entries when relevant: `- (2026-02-15) Switched from REST to WebSocket for X`
-
-### After updating MEMORY.md
-Commit MEMORY.md on the current task branch, never directly on main/master (the global
-pre-commit hook blocks that), and it goes out with that branch's PR:
-`git add MEMORY.md && git commit -m "memory: <brief description>"`
+Use `notes/context.md` and `notes/decisions.md` as the project decision record when
+present. Otherwise use the existing `MEMORY.md`. Read relevant sections when the
+task needs them; update concise durable facts once at a meaningful task boundary.
+Do not auto-commit per discovery or start a background memory committer. Commit
+notes with the scoped task change on its branch. Global preferences belong in
+`C:/Users/asear/.codex/AGENTS.md`; Obsidian links/summarizes project decisions.
