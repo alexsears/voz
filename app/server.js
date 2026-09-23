@@ -1,4 +1,5 @@
 import express from "express";
+import Anthropic from "@anthropic-ai/sdk";
 import { exec } from "child_process";
 import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 import { join, dirname } from "path";
@@ -531,31 +532,29 @@ app.get("/api/health", async (_req, res) => {
   res.json({ ok: true, session: await sessionExists() });
 });
 
-// OpenAI proxy for auto-pilot
-app.post("/api/openai/chat", async (req, res) => {
-  const { apiKey, messages, model } = req.body;
+// Auto-pilot decisions: answers a waiting agent while the user is away.
+// Moved from gpt-4o to Claude on 2026-09-23 (one provider, one key). Judgment
+// calls where latency doesn't matter, so Sonnet 5 with thinking off.
+const AUTOPILOT_MODEL = process.env.VOZ_AUTOPILOT_MODEL || "claude-sonnet-5";
+
+app.post("/api/claude/decide", async (req, res) => {
+  const { apiKey, system, prompt } = req.body;
   if (!apiKey) return res.status(400).json({ error: "apiKey required" });
-  if (!messages) return res.status(400).json({ error: "messages required" });
+  if (!prompt) return res.status(400).json({ error: "prompt required" });
   try {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: model || "gpt-4o",
-        messages,
-        max_tokens: 1024,
-        temperature: 0.3,
-      }),
+    const client = new Anthropic({ apiKey });
+    const msg = await client.messages.create({
+      model: AUTOPILOT_MODEL,
+      max_tokens: 1024,
+      thinking: { type: "disabled" },
+      system,
+      messages: [{ role: "user", content: prompt }],
     });
-    const data = await r.json();
-    if (data.error) return res.status(400).json({ error: data.error.message || data.error });
-    const reply = data.choices?.[0]?.message?.content || "";
+    const reply = msg.content.filter(b => b.type === "text").map(b => b.text).join("");
     res.json({ ok: true, reply });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    const status = e instanceof Anthropic.APIError && e.status ? e.status : 500;
+    res.status(status >= 400 && status < 600 ? status : 500).json({ error: e.message });
   }
 });
 
