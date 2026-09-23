@@ -602,27 +602,25 @@ async function autopilotCheck() {
     if (apCooldowns[agent.id] && now - apCooldowns[agent.id] < AP_COOLDOWN) continue;
     if (cs.state === "asking") {
       let msg;
-      const openaiKey = getOpenAIKey();
-      if (openaiKey) msg = await consultOpenAI(agent, cs, openaiKey);
+      const apiKey = getApiKey();
+      if (apiKey) msg = await consultClaude(agent, cs, apiKey);
       if (!msg) msg = "The user is away. Use your best judgment and proceed. If it's a destructive action, skip it.";
       await localDispatchSilent(agent.id, msg);
       apCooldowns[agent.id] = now;
-      apLog.push({ time: now, agent: agent.name, action: openaiKey ? "AI-decided" : "auto-proceeded", preview: cs.preview });
+      apLog.push({ time: now, agent: agent.name, action: apiKey ? "AI-decided" : "auto-proceeded", preview: cs.preview });
     }
   }
 }
 
-async function consultOpenAI(agent, cs, apiKey) {
+async function consultClaude(agent, cs, apiKey) {
   try {
     const context = (agent.output || "").split("\n").slice(-30).join("\n");
-    const r = await localApi("/api/openai/chat", {
+    const r = await localApi("/api/claude/decide", {
       method: "POST",
       body: JSON.stringify({
-        apiKey, model: "gpt-4o",
-        messages: [
-          { role: "system", content: `You are Voz, an AI orchestrator. The user is away. Agent "${agent.name}" needs a decision. Reply ONLY with the answer to send. Be concise. For y/n on safe ops say "y". For destructive actions say "skip this". Keep under 100 words.` },
-          { role: "user", content: `Terminal:\n${context}\n\nState: ${cs.label}\nQuestion: ${cs.preview}` },
-        ],
+        apiKey,
+        system: `You are Voz, an AI orchestrator. The user is away. Agent "${agent.name}" needs a decision. Reply ONLY with the answer to send. Be concise. For y/n on safe ops say "y". For destructive actions say "skip this". Keep under 100 words.`,
+        prompt: `Terminal:\n${context}\n\nState: ${cs.label}\nQuestion: ${cs.preview}`,
       }),
     });
     if (r.ok && r.reply) return r.reply.trim();
@@ -1554,7 +1552,7 @@ document.getElementById("autopilotBtn").onclick = () => {
   toast(autopilot
     ? (autopilotSafeMode
         ? "Auto-pilot on in safe mode: no unattended AI replies"
-        : (getOpenAIKey() ? "Auto-pilot on \u2014 GPT-4o decides" : "Auto-pilot on"))
+        : (getApiKey() ? "Auto-pilot on \u2014 Claude decides" : "Auto-pilot on"))
     : "Auto-pilot off");
 };
 document.getElementById("apSafeBtn").onclick = () => {
