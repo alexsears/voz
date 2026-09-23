@@ -449,7 +449,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); }
     <input type="password" id="settingsOpenAI" placeholder="sk-..." />
     <label style="font-size:9px;color:var(--dim);margin-top:2px;text-transform:none;letter-spacing:0">Powers auto-pilot decisions when you're away</label>
     <label>Default Model</label>
-    <input type="text" id="settingsModel" placeholder="claude-opus-4-6" />
+    <input type="text" id="settingsModel" placeholder="claude-opus-5-5" />
     <div class="modal__btns">
       <button class="cancel-btn" id="settingsCancel">Cancel</button>
       <button class="save-btn" id="settingsSave">Save</button>
@@ -468,7 +468,19 @@ const STATE_KEY = "voz_state";
 const API_KEY_KEY = "voz_api_key";
 const OPENAI_KEY_KEY = "voz_openai_key";
 const MODEL_KEY = "voz_model";
-const DEFAULT_MODEL = "claude-opus-4-6";
+const DEFAULT_MODEL = "claude-opus-5-5";
+// One-time move of a stored retired or older model id to the new default.
+// Opus 5.5 rejects temperature, top_p, budget_tokens, thinking disabled and
+// assistant prefill; any future Anthropic request built here must omit them.
+const MODEL_MIGRATION_KEY = "voz_model_migrated_2026_09";
+(function migrateStoredModel() {
+  try {
+    if (localStorage.getItem(MODEL_MIGRATION_KEY)) return;
+    const stored = localStorage.getItem(MODEL_KEY) || "";
+    if (/^claude-(opus-4|3|sonnet-4)/.test(stored)) localStorage.setItem(MODEL_KEY, DEFAULT_MODEL);
+    localStorage.setItem(MODEL_MIGRATION_KEY, "1");
+  } catch {}
+})();
 const VOZ_ID = "local-voz";
 const STALE_AFTER = 2;
 
